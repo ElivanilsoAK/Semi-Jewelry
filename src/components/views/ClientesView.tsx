@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase, Cliente } from '../../lib/supabase';
+import { supabase, Cliente, withUserId } from '../../lib/supabase';
 import { Plus, Search, Edit2, Trash2, X } from 'lucide-react';
 
 export default function ClientesView() {
@@ -48,9 +48,10 @@ export default function ClientesView() {
 
         if (error) throw error;
       } else {
+        const dataWithUserId = await withUserId(formData);
         const { error } = await supabase
           .from('clientes')
-          .insert([formData]);
+          .insert([dataWithUserId]);
 
         if (error) throw error;
       }

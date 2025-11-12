@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { supabase, Pano } from '../../lib/supabase';
-import { X, Upload } from 'lucide-react';
+import { supabase, Pano, withUserId } from '../../lib/supabase';
+import { X, Upload, Loader2 } from 'lucide-react';
+import { processInventoryImage, ExtractedItem } from '../../services/ocrService';
+import OCRPreviewModal from './OCRPreviewModal';
 
 interface PanoModalProps {
   pano: Pano | null;
@@ -19,7 +21,12 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
   });
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [processingOCR, setProcessingOCR] = useState(false);
+  const [ocrItems, setOcrItems] = useState<ExtractedItem[]>([]);
+  const [showOCRPreview, setShowOCRPreview] = useState(false);
+  const [savedPanoId, setSavedPanoId] = useState<string | null>(null);
 
   useEffect(() => {
     if (pano) {
@@ -32,19 +39,29 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
         comissao_percentual: pano.comissao_percentual || 0,
         fornecedor: pano.fornecedor || 'Magold',
       });
+      if (pano.foto_url) {
+        setPhotoPreview(pano.foto_url);
+      }
     }
   }, [pano]);
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setPhotoFile(e.target.files[0]);
+      const file = e.target.files[0];
+      setPhotoFile(file);
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const uploadPhoto = async (file: File): Promise<string | null> => {
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `panos/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -61,32 +78,6 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
     } catch (error) {
       console.error('Erro ao fazer upload:', error);
       return null;
-    }
-  };
-
-  const processOCR = async (panoId: string, imageUrl: string) => {
-    try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-      const response = await fetch(`${supabaseUrl}/functions/v1/process-inventory-ocr`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ panoId, imageUrl }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        alert(`OCR processado com sucesso! ${data.itemsCreated} itens criados automaticamente.`);
-      } else {
-        console.error('OCR error:', data.error);
-      }
-    } catch (error) {
-      console.error('Erro ao processar OCR:', error);
     }
   };
 
@@ -112,10 +103,12 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
           .eq('id', pano.id);
 
         if (error) throw error;
+        newPanoId = pano.id;
       } else {
+        const dataWithUserId = await withUserId({ ...formData, foto_url: fotoUrl });
         const { data: insertedData, error } = await supabase
           .from('panos')
-          .insert([{ ...formData, foto_url: fotoUrl }])
+          .insert([dataWithUserId])
           .select()
           .single();
 
@@ -123,18 +116,79 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
         newPanoId = insertedData.id;
       }
 
-      if (photoFile && fotoUrl && newPanoId) {
-        await processOCR(newPanoId, fotoUrl);
-      }
+      if (photoFile && newPanoId) {
+        setSavedPanoId(newPanoId);
+        setProcessingOCR(true);
 
-      onClose();
+        const ocrResult = await processInventoryImage(photoFile);
+        setProcessingOCR(false);
+
+        if (ocrResult.success && ocrResult.items.length > 0) {
+          setOcrItems(ocrResult.items);
+          setShowOCRPreview(true);
+        } else {
+          onClose();
+        }
+      } else {
+        onClose();
+      }
     } catch (error) {
       console.error('Erro ao salvar pano:', error);
       alert('Erro ao salvar pano');
+      setProcessingOCR(false);
     } finally {
       setUploading(false);
     }
   };
+
+  const handleOCRConfirm = async (confirmedItems: ExtractedItem[]) => {
+    try {
+      if (!savedPanoId) {
+        throw new Error('Pano ID not found');
+      }
+
+      const itemsToInsert = await Promise.all(
+        confirmedItems.map(async (item) => {
+          return await withUserId({
+            pano_id: savedPanoId,
+            categoria: item.categoria as any,
+            descricao: `${item.categoria.charAt(0).toUpperCase() + item.categoria.slice(1)} - ${item.numero}`,
+            quantidade_inicial: 1,
+            quantidade_disponivel: 1,
+            valor_unitario: item.valor || 0,
+          });
+        })
+      );
+
+      const { error } = await supabase
+        .from('itens_pano')
+        .insert(itemsToInsert);
+
+      if (error) throw error;
+
+      alert(`${confirmedItems.length} itens criados com sucesso!`);
+      onClose();
+    } catch (error) {
+      console.error('Erro ao salvar itens:', error);
+      alert('Erro ao salvar itens extraídos do OCR');
+    }
+  };
+
+  const handleOCRCancel = () => {
+    setShowOCRPreview(false);
+    onClose();
+  };
+
+  if (showOCRPreview && photoPreview) {
+    return (
+      <OCRPreviewModal
+        items={ocrItems}
+        imageUrl={photoPreview}
+        onConfirm={handleOCRConfirm}
+        onCancel={handleOCRCancel}
+      />
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -146,10 +200,27 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
+            disabled={uploading || processingOCR}
           >
             <X className="w-6 h-6" />
           </button>
         </div>
+
+        {processingOCR && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-3">
+              <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+              <div>
+                <p className="text-sm font-medium text-blue-800">
+                  Processando OCR da imagem...
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Extraindo dados dos itens do documento. Isso pode levar alguns segundos.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -163,6 +234,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               required
               placeholder="Ex: Pano Janeiro 2024"
+              disabled={uploading || processingOCR}
             />
           </div>
 
@@ -177,6 +249,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
                 onChange={(e) => setFormData({ ...formData, data_retirada: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 required
+                disabled={uploading || processingOCR}
               />
             </div>
 
@@ -190,6 +263,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
                 onChange={(e) => setFormData({ ...formData, data_devolucao: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 required
+                disabled={uploading || processingOCR}
               />
             </div>
           </div>
@@ -205,6 +279,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
                 onChange={(e) => setFormData({ ...formData, fornecedor: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 placeholder="Ex: Magold"
+                disabled={uploading || processingOCR}
               />
             </div>
 
@@ -221,6 +296,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
                 onChange={(e) => setFormData({ ...formData, comissao_percentual: parseFloat(e.target.value) || 0 })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 placeholder="0"
+                disabled={uploading || processingOCR}
               />
             </div>
           </div>
@@ -233,6 +309,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value as 'ativo' | 'devolvido' })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              disabled={uploading || processingOCR}
             >
               <option value="ativo">Ativo</option>
               <option value="devolvido">Devolvido</option>
@@ -241,30 +318,52 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Foto do Papel
+              Foto do Documento
             </label>
-            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-emerald-400 transition-colors">
-              <div className="space-y-1 text-center">
-                <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                <div className="flex text-sm text-gray-600">
-                  <label className="relative cursor-pointer bg-white rounded-md font-medium text-emerald-600 hover:text-emerald-500">
-                    <span>Upload da foto</span>
-                    <input
-                      type="file"
-                      className="sr-only"
-                      accept="image/*"
-                      onChange={handlePhotoChange}
-                    />
-                  </label>
-                  <p className="pl-1">ou arraste e solte</p>
-                </div>
-                <p className="text-xs text-gray-500">
-                  {photoFile ? photoFile.name : 'PNG, JPG até 10MB'}
-                </p>
+            {photoPreview ? (
+              <div className="mb-2">
+                <img
+                  src={photoPreview}
+                  alt="Preview"
+                  className="w-full rounded-lg border border-gray-300 max-h-48 object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPhotoFile(null);
+                    setPhotoPreview(null);
+                  }}
+                  className="mt-2 text-sm text-red-600 hover:text-red-700"
+                  disabled={uploading || processingOCR}
+                >
+                  Remover foto
+                </button>
               </div>
-            </div>
-            <p className="mt-2 text-sm text-gray-500">
-              Tire uma foto do papel do pano para referência futura
+            ) : (
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-emerald-400 transition-colors">
+                <div className="space-y-1 text-center">
+                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                  <div className="flex text-sm text-gray-600">
+                    <label className="relative cursor-pointer bg-white rounded-md font-medium text-emerald-600 hover:text-emerald-500">
+                      <span>Upload da foto</span>
+                      <input
+                        type="file"
+                        className="sr-only"
+                        accept="image/*"
+                        onChange={handlePhotoChange}
+                        disabled={uploading || processingOCR}
+                      />
+                    </label>
+                    <p className="pl-1">ou arraste e solte</p>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    PNG, JPG até 10MB
+                  </p>
+                </div>
+              </div>
+            )}
+            <p className="mt-2 text-sm text-emerald-600 font-medium">
+              O sistema vai extrair automaticamente os itens da foto usando OCR
             </p>
           </div>
 
@@ -278,6 +377,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               rows={3}
               placeholder="Observações adicionais sobre este pano..."
+              disabled={uploading || processingOCR}
             />
           </div>
 
@@ -285,17 +385,24 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              disabled={uploading}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={uploading || processingOCR}
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors disabled:opacity-50"
-              disabled={uploading}
+              className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              disabled={uploading || processingOCR}
             >
-              {uploading ? 'Salvando...' : 'Salvar'}
+              {uploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                'Salvar'
+              )}
             </button>
           </div>
         </form>

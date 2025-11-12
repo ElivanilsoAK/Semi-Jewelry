@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase, Cliente, Pano, ItemPano } from '../../lib/supabase';
+import { supabase, Cliente, Pano, ItemPano, withUserId } from '../../lib/supabase';
 import { X, Plus, Trash2, UserPlus } from 'lucide-react';
 
 interface NovaVendaModalProps {
@@ -74,9 +74,10 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
       return;
     }
 
+    const clienteComUserId = await withUserId(novoCliente);
     const { data, error } = await supabase
       .from('clientes')
-      .insert([novoCliente])
+      .insert([clienteComUserId])
       .select()
       .single();
 
@@ -139,26 +140,29 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
       const valorTotal = calcularValorTotal();
       const valorParcela = valorTotal / numeroParcelas;
 
-      const { data: venda, error: vendaError } = await supabase
-        .from('vendas')
-        .insert([{
+      const vendaComUserId = await withUserId({
           cliente_id: clienteSelecionado,
           valor_total: valorTotal,
           status_pagamento: 'pendente',
           observacoes,
-        }])
+        });
+      const { data: venda, error: vendaError } = await supabase
+        .from('vendas')
+        .insert([vendaComUserId])
         .select()
         .single();
 
       if (vendaError) throw vendaError;
 
-      const itensVendaInsert = itensVenda.map(item => ({
+      const itensVendaBase = itensVenda.map(item => ({
         venda_id: venda.id,
         item_pano_id: item.item_pano_id,
         quantidade: item.quantidade,
         valor_unitario: item.valor_unitario,
         valor_total: item.valor_total,
       }));
+
+      const itensVendaInsert = await Promise.all(itensVendaBase.map(item => withUserId(item)));
 
       const { error: itensError } = await supabase
         .from('itens_venda')
@@ -188,13 +192,15 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
         }
       }
 
-      const pagamentosInsert = datasParcelas.map((data, index) => ({
+      const pagamentosBase = datasParcelas.map((data, index) => ({
         venda_id: venda.id,
         numero_parcela: index + 1,
         valor_parcela: valorParcela,
         data_vencimento: data || new Date().toISOString().split('T')[0],
         status: 'pendente',
       }));
+
+      const pagamentosInsert = await Promise.all(pagamentosBase.map(pag => withUserId(pag)));
 
       const { error: pagamentosError } = await supabase
         .from('pagamentos')

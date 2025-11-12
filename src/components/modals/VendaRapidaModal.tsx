@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase, withUserId } from '../../lib/supabase';
 import { X, Search } from 'lucide-react';
 
 interface Cliente {
@@ -68,19 +68,20 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
 
     setLoading(true);
     try {
-      const { data: venda, error: vendaError } = await supabase
-        .from('vendas')
-        .insert([{
+      const vendaComUserId = await withUserId({
           cliente_id: selectedCliente,
           valor_total: calculateTotal(),
           status_pagamento: 'pendente'
-        }])
+        });
+      const { data: venda, error: vendaError } = await supabase
+        .from('vendas')
+        .insert([vendaComUserId])
         .select()
         .single();
 
       if (vendaError) throw vendaError;
 
-      const itensVenda = selectedItems.map(selected => {
+      const itensVendaBase = selectedItems.map(selected => {
         const item = items.find(i => i.id === selected.itemId)!;
         return {
           venda_id: venda.id,
@@ -90,6 +91,8 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
           valor_total: item.valor_unitario * selected.quantidade
         };
       });
+
+      const itensVenda = await Promise.all(itensVendaBase.map(item => withUserId(item)));
 
       const { error: itensError } = await supabase.from('itens_venda').insert(itensVenda);
       if (itensError) throw itensError;

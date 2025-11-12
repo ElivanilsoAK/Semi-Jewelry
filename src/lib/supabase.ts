@@ -5,8 +5,22 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+export const getCurrentUserId = async (): Promise<string | null> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id || null;
+};
+
+export const withUserId = async <T extends Record<string, any>>(data: T): Promise<T & { user_id: string }> => {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error('User not authenticated');
+  }
+  return { ...data, user_id: userId };
+};
+
 export interface Cliente {
   id: string;
+  user_id: string;
   nome: string;
   telefone: string | null;
   email: string | null;
@@ -16,17 +30,23 @@ export interface Cliente {
 
 export interface Pano {
   id: string;
+  user_id: string;
   nome: string;
   data_retirada: string;
   data_devolucao: string;
   foto_url: string | null;
   observacoes: string | null;
   status: 'ativo' | 'devolvido';
+  fornecedor: string;
+  comissao_percentual: number;
+  ocr_processed: boolean;
+  ocr_data: any | null;
   created_at: string;
 }
 
 export interface ItemPano {
   id: string;
+  user_id: string;
   pano_id: string;
   categoria: 'argola' | 'infantil' | 'pulseira' | 'colar' | 'brinco' | 'anel' | 'tornozeleira' | 'pingente' | 'conjunto' | 'outro';
   descricao: string;
@@ -38,6 +58,7 @@ export interface ItemPano {
 
 export interface Venda {
   id: string;
+  user_id: string;
   cliente_id: string;
   data_venda: string;
   valor_total: number;
@@ -48,6 +69,7 @@ export interface Venda {
 
 export interface ItemVenda {
   id: string;
+  user_id: string;
   venda_id: string;
   item_pano_id: string;
   quantidade: number;
@@ -58,6 +80,7 @@ export interface ItemVenda {
 
 export interface Pagamento {
   id: string;
+  user_id: string;
   venda_id: string;
   numero_parcela: number;
   valor_parcela: number;

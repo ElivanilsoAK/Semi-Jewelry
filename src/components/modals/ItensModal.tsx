@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase, Pano, ItemPano } from '../../lib/supabase';
+import { supabase, Pano, ItemPano, withUserId } from '../../lib/supabase';
 import { X, Plus, Edit2, Trash2 } from 'lucide-react';
 
 interface ItensModalProps {
@@ -70,13 +70,14 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
 
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('itens_pano')
-          .insert([{
+        const dataWithUserId = await withUserId({
             pano_id: pano.id,
             ...formData,
             quantidade_disponivel: formData.quantidade_inicial,
-          }]);
+          });
+        const { error } = await supabase
+          .from('itens_pano')
+          .insert([dataWithUserId]);
 
         if (error) throw error;
       }
