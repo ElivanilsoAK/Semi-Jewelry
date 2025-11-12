@@ -14,6 +14,8 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
     data_devolucao: '',
     observacoes: '',
     status: 'ativo' as 'ativo' | 'devolvido',
+    comissao_percentual: 0,
+    fornecedor: 'Magold',
   });
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -27,6 +29,8 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
         data_devolucao: pano.data_devolucao,
         observacoes: pano.observacoes || '',
         status: pano.status,
+        comissao_percentual: pano.comissao_percentual || 0,
+        fornecedor: pano.fornecedor || 'Magold',
       });
     }
   }, [pano]);
@@ -152,6 +156,37 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
                 onChange={(e) => setFormData({ ...formData, data_devolucao: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Fornecedor
+              </label>
+              <input
+                type="text"
+                value={formData.fornecedor}
+                onChange={(e) => setFormData({ ...formData, fornecedor: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                placeholder="Ex: Magold"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Comissão (%)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                value={formData.comissao_percentual}
+                onChange={(e) => setFormData({ ...formData, comissao_percentual: parseFloat(e.target.value) || 0 })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                placeholder="0"
               />
             </div>
           </div>

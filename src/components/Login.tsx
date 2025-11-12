@@ -31,18 +31,19 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-        <div className="flex items-center justify-center mb-8">
-          <div className="bg-emerald-600 p-3 rounded-xl">
-            <Package2 className="w-8 h-8 text-white" />
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md border border-gray-100">
+        <div className="flex flex-col items-center justify-center mb-8">
+          <div className="bg-gradient-to-br from-emerald-600 to-teal-600 p-4 rounded-2xl shadow-lg mb-4">
+            <Package2 className="w-10 h-10 text-white" />
           </div>
+          <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-1">
+            Semi Jewelry
+          </h1>
+          <p className="text-sm text-gray-500 font-medium">Sistema de Vendas</p>
         </div>
 
-        <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">
-          Sistema de Semi-Joias
-        </h1>
-        <p className="text-gray-600 text-center mb-8">
+        <p className="text-gray-600 text-center mb-8 font-medium">
           {isSignUp ? 'Criar nova conta' : 'Faça login para continuar'}
         </p>
 
@@ -83,7 +84,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
+            className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold py-3 px-4 rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50"
           >
             {loading ? 'Aguarde...' : isSignUp ? 'Criar Conta' : 'Entrar'}
           </button>
@@ -92,7 +93,7 @@ export default function Login() {
         <div className="mt-6 text-center">
           <button
             onClick={() => setIsSignUp(!isSignUp)}
-            className="text-emerald-600 hover:text-emerald-700 text-sm font-medium"
+            className="text-emerald-600 hover:text-emerald-700 text-sm font-semibold transition-colors"
           >
             {isSignUp ? 'Já tem conta? Faça login' : 'Não tem conta? Cadastre-se'}
           </button>
