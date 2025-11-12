@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Package2, Users, ShoppingBag, LogOut, Home, Zap } from 'lucide-react';
+import { Package2, Users, ShoppingBag, LogOut, Home, Zap, BarChart3, CreditCard } from 'lucide-react';
 import HomeView from './views/HomeView';
 import ClientesView from './views/ClientesView';
 import PanosView from './views/PanosView';
 import VendasView from './views/VendasView';
+import ClientesAnalyticsView from './views/ClientesAnalyticsView';
+import PagamentosView from './views/PagamentosView';
+import VendaRapidaModal from './modals/VendaRapidaModal';
 
-type View = 'home' | 'clientes' | 'panos' | 'vendas';
+type View = 'home' | 'clientes' | 'panos' | 'vendas' | 'analytics' | 'pagamentos';
 
 export default function Dashboard() {
   const [currentView, setCurrentView] = useState<View>('home');
@@ -24,8 +27,10 @@ export default function Dashboard() {
   const menuItems = [
     { id: 'home' as View, label: 'Início', icon: Home },
     { id: 'clientes' as View, label: 'Clientes', icon: Users },
+    { id: 'analytics' as View, label: 'Análise Clientes', icon: BarChart3 },
     { id: 'panos' as View, label: 'Panos', icon: Package2 },
     { id: 'vendas' as View, label: 'Vendas', icon: ShoppingBag },
+    { id: 'pagamentos' as View, label: 'Pagamentos', icon: CreditCard },
   ];
 
   return (
@@ -44,6 +49,14 @@ export default function Dashboard() {
             </div>
 
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowVendaRapida(true)}
+                className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-4 py-2 rounded-lg transition-all shadow-md hover:shadow-lg font-medium"
+              >
+                <Zap className="w-5 h-5" />
+                <span className="hidden sm:inline">Venda Rápida</span>
+              </button>
+
               <button
                 onClick={handleSignOut}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors p-2 hover:bg-gray-100 rounded-lg"
@@ -109,11 +122,17 @@ export default function Dashboard() {
           <div className="max-w-7xl mx-auto p-4 sm:p-6">
             {currentView === 'home' && <HomeView />}
             {currentView === 'clientes' && <ClientesView />}
+            {currentView === 'analytics' && <ClientesAnalyticsView />}
             {currentView === 'panos' && <PanosView />}
             {currentView === 'vendas' && <VendasView />}
+            {currentView === 'pagamentos' && <PagamentosView />}
           </div>
         </main>
       </div>
+
+      {showVendaRapida && (
+        <VendaRapidaModal onClose={() => setShowVendaRapida(false)} />
+      )}
     </div>
   );
 }

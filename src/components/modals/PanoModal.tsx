@@ -64,12 +64,39 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
     }
   };
 
+  const processOCR = async (panoId: string, imageUrl: string) => {
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/process-inventory-ocr`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ panoId, imageUrl }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(`OCR processado com sucesso! ${data.itemsCreated} itens criados automaticamente.`);
+      } else {
+        console.error('OCR error:', data.error);
+      }
+    } catch (error) {
+      console.error('Erro ao processar OCR:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setUploading(true);
 
     try {
       let fotoUrl = pano?.foto_url || null;
+      let newPanoId = pano?.id;
 
       if (photoFile) {
         const uploadedUrl = await uploadPhoto(photoFile);
@@ -86,11 +113,18 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
 
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { data: insertedData, error } = await supabase
           .from('panos')
-          .insert([{ ...formData, foto_url: fotoUrl }]);
+          .insert([{ ...formData, foto_url: fotoUrl }])
+          .select()
+          .single();
 
         if (error) throw error;
+        newPanoId = insertedData.id;
+      }
+
+      if (photoFile && fotoUrl && newPanoId) {
+        await processOCR(newPanoId, fotoUrl);
       }
 
       onClose();
