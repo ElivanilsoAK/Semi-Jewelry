@@ -1,13 +1,23 @@
 {
-  "name": "Semi Jewelry - Sistema de Vendas",
-  "short_name": "Semi Jewelry",
-  "description": "Sistema completo de gestão de vendas de semi-joias",
+  "name": "Semi-Joias - Sistema de Gestão",
+  "short_name": "Semi-Joias",
+  "description": "Sistema completo de gestão de vendas de semi-joias com OCR automático, controle de estoque, vendas e comissões",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#059669",
+  "theme_color": "#10b981",
   "orientation": "portrait-primary",
+  "categories": ["business", "finance", "productivity"],
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "scope": "/",
   "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
@@ -19,6 +29,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
