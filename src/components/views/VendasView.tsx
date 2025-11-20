@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { supabase, Venda, Cliente } from '../../lib/supabase';
-import { Plus, Search, Eye } from 'lucide-react';
+import { Plus, Search, Eye, Edit2 } from 'lucide-react';
 import NovaVendaModal from '../modals/NovaVendaModal';
 import DetalhesVendaModal from '../modals/DetalhesVendaModal';
+import EditarVendaModal from '../modals/EditarVendaModal';
 
 interface VendaComCliente extends Venda {
   cliente: Cliente;
@@ -14,6 +15,7 @@ export default function VendasView() {
   const [loading, setLoading] = useState(true);
   const [showNovaVenda, setShowNovaVenda] = useState(false);
   const [selectedVenda, setSelectedVenda] = useState<VendaComCliente | null>(null);
+  const [editingVenda, setEditingVenda] = useState<Venda | null>(null);
 
   useEffect(() => {
     loadVendas();
@@ -150,13 +152,22 @@ export default function VendasView() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => setSelectedVenda(venda)}
-                      className="text-emerald-600 hover:text-emerald-900 inline-flex items-center gap-1"
-                    >
-                      <Eye className="w-4 h-4" />
-                      Ver Detalhes
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => setEditingVenda(venda)}
+                        className="text-blue-600 hover:text-blue-900 inline-flex items-center gap-1 px-2 py-1 hover:bg-blue-50 rounded transition-colors"
+                        title="Editar venda"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setSelectedVenda(venda)}
+                        className="text-emerald-600 hover:text-emerald-900 inline-flex items-center gap-1 px-2 py-1 hover:bg-emerald-50 rounded transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                        Ver
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -173,6 +184,17 @@ export default function VendasView() {
         <DetalhesVendaModal
           venda={selectedVenda}
           onClose={handleCloseDetalhes}
+        />
+      )}
+
+      {editingVenda && (
+        <EditarVendaModal
+          venda={editingVenda}
+          onClose={() => setEditingVenda(null)}
+          onSave={() => {
+            setEditingVenda(null);
+            loadVendas();
+          }}
         />
       )}
     </div>

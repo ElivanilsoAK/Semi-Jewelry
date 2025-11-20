@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Package2, Users, ShoppingBag, LogOut, Home, Zap, BarChart3, CreditCard } from 'lucide-react';
+import { Package2, Users, ShoppingBag, LogOut, Home, Zap, BarChart3, CreditCard, FileText, Shield, Settings } from 'lucide-react';
 import HomeView from './views/HomeView';
 import ClientesView from './views/ClientesView';
 import PanosView from './views/PanosView';
 import VendasView from './views/VendasView';
 import ClientesAnalyticsView from './views/ClientesAnalyticsView';
 import PagamentosView from './views/PagamentosView';
+import RelatoriosView from './views/RelatoriosView';
+import GarantiasView from './views/GarantiasView';
+import ConfiguracoesView from './views/ConfiguracoesView';
 import VendaRapidaModal from './modals/VendaRapidaModal';
 
-type View = 'home' | 'clientes' | 'panos' | 'vendas' | 'analytics' | 'pagamentos';
+type View = 'home' | 'clientes' | 'panos' | 'vendas' | 'analytics' | 'pagamentos' | 'relatorios' | 'garantias' | 'configuracoes';
 
 export default function Dashboard() {
   const [currentView, setCurrentView] = useState<View>('home');
@@ -27,10 +30,12 @@ export default function Dashboard() {
   const menuItems = [
     { id: 'home' as View, label: 'Início', icon: Home },
     { id: 'clientes' as View, label: 'Clientes', icon: Users },
-    { id: 'analytics' as View, label: 'Análise Clientes', icon: BarChart3 },
     { id: 'panos' as View, label: 'Panos', icon: Package2 },
     { id: 'vendas' as View, label: 'Vendas', icon: ShoppingBag },
     { id: 'pagamentos' as View, label: 'Pagamentos', icon: CreditCard },
+    { id: 'garantias' as View, label: 'Garantias', icon: Shield },
+    { id: 'relatorios' as View, label: 'Relatórios', icon: FileText },
+    { id: 'configuracoes' as View, label: 'Configurações', icon: Settings },
   ];
 
   return (
@@ -126,6 +131,9 @@ export default function Dashboard() {
             {currentView === 'panos' && <PanosView />}
             {currentView === 'vendas' && <VendasView />}
             {currentView === 'pagamentos' && <PagamentosView />}
+            {currentView === 'garantias' && <GarantiasView />}
+            {currentView === 'relatorios' && <RelatoriosView />}
+            {currentView === 'configuracoes' && <ConfiguracoesView />}
           </div>
         </main>
       </div>

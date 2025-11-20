@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { supabase, Pano, ItemPano } from '../../lib/supabase';
-import { Plus, Package2, Calendar, AlertCircle, Eye } from 'lucide-react';
+import { Plus, Package2, Calendar, AlertCircle, Eye, Zap } from 'lucide-react';
 import PanoModal from '../modals/PanoModal';
 import ItensModal from '../modals/ItensModal';
+import CadastroRapidoItensModal from '../modals/CadastroRapidoItensModal';
 
 export default function PanosView() {
   const [panos, setPanos] = useState<Pano[]>([]);
@@ -11,6 +12,8 @@ export default function PanosView() {
   const [showItensModal, setShowItensModal] = useState(false);
   const [selectedPano, setSelectedPano] = useState<Pano | null>(null);
   const [editingPano, setEditingPano] = useState<Pano | null>(null);
+  const [showCadastroRapido, setShowCadastroRapido] = useState(false);
+  const [panoParaCadastro, setPanoParaCadastro] = useState<string | null>(null);
 
   useEffect(() => {
     loadPanos();
@@ -139,10 +142,21 @@ export default function PanosView() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleViewItens(pano)}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors text-sm font-medium"
+                      className="flex-1 flex items-center justify-center gap-1 px-2 py-2 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors text-sm font-medium"
                     >
                       <Eye className="w-4 h-4" />
-                      Ver Itens
+                      Ver
+                    </button>
+                    <button
+                      onClick={() => {
+                        setPanoParaCadastro(pano.id);
+                        setShowCadastroRapido(true);
+                      }}
+                      className="flex-1 flex items-center justify-center gap-1 px-2 py-2 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors text-sm font-medium"
+                      title="Cadastro Rápido"
+                    >
+                      <Zap className="w-4 h-4" />
+                      +Itens
                     </button>
                     <button
                       onClick={() => handleEditPano(pano)}
@@ -169,6 +183,21 @@ export default function PanosView() {
         <ItensModal
           pano={selectedPano}
           onClose={handleCloseItensModal}
+        />
+      )}
+
+      {showCadastroRapido && panoParaCadastro && (
+        <CadastroRapidoItensModal
+          panoId={panoParaCadastro}
+          onClose={() => {
+            setShowCadastroRapido(false);
+            setPanoParaCadastro(null);
+          }}
+          onSave={() => {
+            setShowCadastroRapido(false);
+            setPanoParaCadastro(null);
+            loadPanos();
+          }}
         />
       )}
     </div>

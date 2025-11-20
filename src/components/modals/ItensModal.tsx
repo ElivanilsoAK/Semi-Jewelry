@@ -1,37 +1,24 @@
 import { useState, useEffect } from 'react';
-import { supabase, Pano, ItemPano, withUserId } from '../../lib/supabase';
-import { X, Plus, Edit2, Trash2 } from 'lucide-react';
+import { supabase, Pano, ItemPano } from '../../lib/supabase';
+import { X, Package, ChevronDown, ChevronUp, Edit2, Image as ImageIcon } from 'lucide-react';
 
 interface ItensModalProps {
   pano: Pano;
   onClose: () => void;
 }
 
-const CATEGORIAS = [
-  'argola',
-  'infantil',
-  'pulseira',
-  'colar',
-  'brinco',
-  'anel',
-  'tornozeleira',
-  'pingente',
-  'conjunto',
-  'outro',
-] as const;
+interface ItemPorCategoria {
+  categoria: string;
+  itens: ItemPano[];
+  total: number;
+  quantidade: number;
+}
 
 export default function ItensModal({ pano, onClose }: ItensModalProps) {
   const [itens, setItens] = useState<ItemPano[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editingItem, setEditingItem] = useState<ItemPano | null>(null);
-
-  const [formData, setFormData] = useState({
-    categoria: 'argola' as typeof CATEGORIAS[number],
-    descricao: '',
-    quantidade_inicial: 0,
-    valor_unitario: 0,
-  });
+  const [categoriaExpandida, setCategoriaExpandida] = useState<string | null>(null);
+  const [busca, setBusca] = useState('');
 
   useEffect(() => {
     loadItens();
@@ -43,7 +30,8 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
         .from('itens_pano')
         .select('*')
         .eq('pano_id', pano.id)
-        .order('categoria');
+        .order('categoria')
+        .order('descricao');
 
       if (error) throw error;
       setItens(data || []);
@@ -54,263 +42,192 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const itensPorCategoria: ItemPorCategoria[] = itens
+    .filter(item =>
+      busca === '' ||
+      item.descricao.toLowerCase().includes(busca.toLowerCase()) ||
+      item.categoria.toLowerCase().includes(busca.toLowerCase())
+    )
+    .reduce((acc, item) => {
+      const categoria = item.categoria || 'Sem Categoria';
+      const existing = acc.find(c => c.categoria === categoria);
 
-    try {
-      if (editingItem) {
-        const { error } = await supabase
-          .from('itens_pano')
-          .update({
-            categoria: formData.categoria,
-            descricao: formData.descricao,
-            valor_unitario: formData.valor_unitario,
-          })
-          .eq('id', editingItem.id);
-
-        if (error) throw error;
+      if (existing) {
+        existing.itens.push(item);
+        existing.total += item.valor_unitario * item.quantidade_disponivel;
+        existing.quantidade += item.quantidade_disponivel;
       } else {
-        const dataWithUserId = await withUserId({
-            pano_id: pano.id,
-            ...formData,
-            quantidade_disponivel: formData.quantidade_inicial,
-          });
-        const { error } = await supabase
-          .from('itens_pano')
-          .insert([dataWithUserId]);
-
-        if (error) throw error;
+        acc.push({
+          categoria,
+          itens: [item],
+          total: item.valor_unitario * item.quantidade_disponivel,
+          quantidade: item.quantidade_disponivel,
+        });
       }
 
-      resetForm();
-      loadItens();
-    } catch (error) {
-      console.error('Erro ao salvar item:', error);
-      alert('Erro ao salvar item');
-    }
+      return acc;
+    }, [] as ItemPorCategoria[])
+    .sort((a, b) => a.categoria.localeCompare(b.categoria));
+
+  const toggleCategoria = (categoria: string) => {
+    setCategoriaExpandida(categoriaExpandida === categoria ? null : categoria);
   };
 
-  const handleEdit = (item: ItemPano) => {
-    setEditingItem(item);
-    setFormData({
-      categoria: item.categoria,
-      descricao: item.descricao,
-      quantidade_inicial: item.quantidade_inicial,
-      valor_unitario: Number(item.valor_unitario),
-    });
-    setShowForm(true);
-  };
+  const totalGeral = itensPorCategoria.reduce((sum, cat) => sum + cat.total, 0);
+  const quantidadeTotal = itensPorCategoria.reduce((sum, cat) => sum + cat.quantidade, 0);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este item?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('itens_pano')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      loadItens();
-    } catch (error) {
-      console.error('Erro ao excluir item:', error);
-      alert('Erro ao excluir item');
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      categoria: 'argola',
-      descricao: '',
-      quantidade_inicial: 0,
-      valor_unitario: 0,
-    });
-    setEditingItem(null);
-    setShowForm(false);
-  };
-
-  const totalItens = itens.reduce((sum, item) => sum + item.quantidade_disponivel, 0);
-  const valorTotal = itens.reduce((sum, item) => sum + (item.quantidade_disponivel * Number(item.valor_unitario)), 0);
+  const cores = [
+    'bg-blue-500',
+    'bg-green-500',
+    'bg-yellow-500',
+    'bg-red-500',
+    'bg-purple-500',
+    'bg-pink-500',
+    'bg-indigo-500',
+    'bg-teal-500',
+  ];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] flex flex-col">
         <div className="p-6 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-bold text-gray-800">
-                Itens do Pano: {pano.nome}
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                Total: {totalItens} itens | Valor: R$ {valorTotal.toFixed(2)}
-              </p>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
+                <Package className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Itens do Pano</h3>
+                <p className="text-sm text-gray-600">{pano.nome}</p>
+              </div>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5 text-gray-500" />
             </button>
           </div>
+
+          <input
+            type="text"
+            placeholder="Buscar itens..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            className="input-field"
+          />
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">
-          {!showForm && (
-            <button
-              onClick={() => setShowForm(true)}
-              className="mb-4 flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              Adicionar Item
-            </button>
-          )}
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+          </div>
+        ) : itens.length === 0 ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
+            <Package className="w-16 h-16 mb-4 opacity-50" />
+            <p className="text-lg font-medium">Nenhum item cadastrado</p>
+            <p className="text-sm">Use o OCR ou cadastre manualmente</p>
+          </div>
+        ) : (
+          <>
+            <div className="p-6 grid grid-cols-3 gap-4 bg-gradient-to-r from-blue-50 to-blue-100">
+              <div className="text-center">
+                <p className="text-sm text-blue-700 font-medium">Categorias</p>
+                <p className="text-2xl font-bold text-blue-900">{itensPorCategoria.length}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-blue-700 font-medium">Total Itens</p>
+                <p className="text-2xl font-bold text-blue-900">{quantidadeTotal}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-blue-700 font-medium">Valor Total</p>
+                <p className="text-2xl font-bold text-blue-900">R$ {totalGeral.toFixed(2)}</p>
+              </div>
+            </div>
 
-          {showForm && (
-            <form onSubmit={handleSubmit} className="mb-6 bg-gray-50 p-4 rounded-lg space-y-4">
-              <h3 className="font-semibold text-gray-800">
-                {editingItem ? 'Editar Item' : 'Novo Item'}
-              </h3>
+            <div className="flex-1 overflow-auto p-6 space-y-3">
+              {itensPorCategoria.map((cat, index) => {
+                const isExpanded = categoriaExpandida === cat.categoria;
+                const cor = cores[index % cores.length];
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Categoria *
-                  </label>
-                  <select
-                    value={formData.categoria}
-                    onChange={(e) => setFormData({ ...formData, categoria: e.target.value as typeof CATEGORIAS[number] })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent capitalize"
-                    required
+                return (
+                  <div
+                    key={cat.categoria}
+                    className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
                   >
-                    {CATEGORIAS.map((cat) => (
-                      <option key={cat} value={cat} className="capitalize">
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {!editingItem && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Quantidade *
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.quantidade_inicial}
-                      onChange={(e) => setFormData({ ...formData, quantidade_inicial: parseInt(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                      required
-                      min="0"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Valor Unitário *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.valor_unitario}
-                    onChange={(e) => setFormData({ ...formData, valor_unitario: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                    required
-                    min="0"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Descrição *
-                </label>
-                <input
-                  type="text"
-                  value={formData.descricao}
-                  onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                  required
-                  placeholder="Ex: Argola dourada 3cm"
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
-                >
-                  Salvar
-                </button>
-              </div>
-            </form>
-          )}
-
-          {loading ? (
-            <div className="text-center py-8 text-gray-500">Carregando...</div>
-          ) : itens.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              Nenhum item cadastrado neste pano
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {itens.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded capitalize">
-                          {item.categoria}
-                        </span>
-                        <h4 className="font-medium text-gray-800">{item.descricao}</h4>
+                    <button
+                      onClick={() => toggleCategoria(cat.categoria)}
+                      className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 ${cor} rounded-lg flex items-center justify-center text-white font-bold text-lg`}>
+                          {cat.quantidade}
+                        </div>
+                        <div className="text-left">
+                          <h4 className="font-semibold text-gray-900 text-lg">{cat.categoria}</h4>
+                          <p className="text-sm text-gray-600">
+                            {cat.itens.length} {cat.itens.length === 1 ? 'item' : 'itens'} · R$ {cat.total.toFixed(2)}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-600 space-y-1">
-                        <p>
-                          Quantidade: {item.quantidade_disponivel} / {item.quantidade_inicial}
-                        </p>
-                        <p>Valor unitário: R$ {Number(item.valor_unitario).toFixed(2)}</p>
-                        <p className="font-medium">
-                          Valor total: R$ {(item.quantidade_disponivel * Number(item.valor_unitario)).toFixed(2)}
-                        </p>
+                      {isExpanded ? (
+                        <ChevronUp className="w-5 h-5 text-gray-400" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-gray-400" />
+                      )}
+                    </button>
+
+                    {isExpanded && (
+                      <div className="border-t border-gray-200 bg-gray-50">
+                        <div className="divide-y divide-gray-200">
+                          {cat.itens.map((item) => (
+                            <div
+                              key={item.id}
+                              className="p-4 flex items-center gap-4 hover:bg-white transition-colors"
+                            >
+                              {item.foto_url ? (
+                                <img
+                                  src={item.foto_url}
+                                  alt={item.descricao}
+                                  className="w-16 h-16 rounded-lg object-cover"
+                                />
+                              ) : (
+                                <div className="w-16 h-16 bg-gradient-to-br from-gray-200 to-gray-300 rounded-lg flex items-center justify-center">
+                                  <ImageIcon className="w-6 h-6 text-gray-400" />
+                                </div>
+                              )}
+
+                              <div className="flex-1">
+                                <p className="font-medium text-gray-900">{item.descricao}</p>
+                                <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
+                                  <span>Qtd: {item.quantidade_disponivel}</span>
+                                  <span>Valor: R$ {item.valor_unitario.toFixed(2)}</span>
+                                  <span className="font-medium text-green-600">
+                                    Total: R$ {(item.valor_unitario * item.quantidade_disponivel).toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <button
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Editar item"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(item)}
-                        className="text-emerald-600 hover:text-emerald-900 p-2"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="text-red-600 hover:text-red-900 p-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          )}
-        </div>
+          </>
+        )}
 
         <div className="p-6 border-t border-gray-200">
-          <button
-            onClick={onClose}
-            className="w-full px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
-          >
+          <button onClick={onClose} className="btn-primary w-full">
             Fechar
           </button>
         </div>

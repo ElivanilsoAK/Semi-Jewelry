@@ -182,4 +182,68 @@
     @apply transition-all duration-200;
     @apply hover:shadow active:scale-95;
   }
+
+  /* Card Component */
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6;
+    @apply transition-all duration-200 hover:shadow-md;
+  }
+
+  /* Input Field */
+  .input-field {
+    @apply w-full px-4 py-2.5 border border-gray-300 rounded-lg;
+    @apply focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+    @apply transition-all duration-200;
+    @apply text-base;
+  }
+
+  /* Mobile Optimizations */
+  @media (max-width: 768px) {
+    .input-field {
+      @apply py-3 text-base;
+      min-height: 44px;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+      @apply py-3 px-6 text-base;
+      min-height: 44px;
+    }
+
+    .card {
+      @apply p-4;
+    }
+
+    /* Make modals full-screen on mobile */
+    .modal-mobile-full {
+      @apply !max-w-full !h-full !rounded-none !m-0;
+    }
+
+    /* Larger touch targets */
+    button,
+    a,
+    input,
+    select,
+    textarea {
+      min-height: 44px;
+      @apply text-base;
+    }
+
+    /* Better spacing for mobile */
+    .space-y-mobile {
+      @apply space-y-4;
+    }
+
+    /* Single column forms on mobile */
+    .grid-responsive {
+      @apply grid-cols-1;
+    }
+  }
+
+  /* Desktop enhancements */
+  @media (min-width: 769px) {
+    .grid-responsive {
+      @apply grid-cols-2;
+    }
+  }
 }
