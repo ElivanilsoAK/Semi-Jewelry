@@ -1,18 +1,17 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Package2, Users, ShoppingBag, LogOut, Home, Zap, BarChart3, CreditCard, FileText, Shield, Settings } from 'lucide-react';
+import { Package2, Users, ShoppingBag, LogOut, Home, Zap, CreditCard, FileText, Shield, Settings } from 'lucide-react';
 import HomeView from './views/HomeView';
 import ClientesView from './views/ClientesView';
 import PanosView from './views/PanosView';
 import VendasView from './views/VendasView';
-import ClientesAnalyticsView from './views/ClientesAnalyticsView';
 import PagamentosView from './views/PagamentosView';
 import RelatoriosView from './views/RelatoriosView';
 import GarantiasView from './views/GarantiasView';
 import ConfiguracoesView from './views/ConfiguracoesView';
 import VendaRapidaModal from './modals/VendaRapidaModal';
 
-type View = 'home' | 'clientes' | 'panos' | 'vendas' | 'analytics' | 'pagamentos' | 'relatorios' | 'garantias' | 'configuracoes';
+type View = 'home' | 'clientes' | 'panos' | 'vendas' | 'pagamentos' | 'relatorios' | 'garantias' | 'configuracoes';
 
 export default function Dashboard() {
   const [currentView, setCurrentView] = useState<View>('home');
@@ -127,7 +126,6 @@ export default function Dashboard() {
           <div className="max-w-7xl mx-auto p-4 sm:p-6">
             {currentView === 'home' && <HomeView />}
             {currentView === 'clientes' && <ClientesView />}
-            {currentView === 'analytics' && <ClientesAnalyticsView />}
             {currentView === 'panos' && <PanosView />}
             {currentView === 'vendas' && <VendasView />}
             {currentView === 'pagamentos' && <PagamentosView />}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { supabase, Pano, ItemPano } from '../../lib/supabase';
-import { X, Package, ChevronDown, ChevronUp, Edit2, Image as ImageIcon } from 'lucide-react';
+import { supabase, Pano, ItemPano, withUserId } from '../../lib/supabase';
+import { X, Package, ChevronDown, ChevronUp, Plus, Trash2, Edit2, Image as ImageIcon } from 'lucide-react';
 
 interface ItensModalProps {
   pano: Pano;
@@ -14,11 +14,33 @@ interface ItemPorCategoria {
   quantidade: number;
 }
 
+const CATEGORIAS = [
+  'Pulseira',
+  'Corrente',
+  'Pingente',
+  'Anel',
+  'Brinco',
+  'Argola',
+  'Tornozeleira',
+  'Conjunto',
+  'Infantil',
+  'Outro',
+] as const;
+
 export default function ItensModal({ pano, onClose }: ItensModalProps) {
   const [itens, setItens] = useState<ItemPano[]>([]);
   const [loading, setLoading] = useState(true);
   const [categoriaExpandida, setCategoriaExpandida] = useState<string | null>(null);
   const [busca, setBusca] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [editingItem, setEditingItem] = useState<ItemPano | null>(null);
+
+  const [formData, setFormData] = useState({
+    categoria: 'Pulseira',
+    descricao: '',
+    quantidade_inicial: 1,
+    valor_unitario: 0,
+  });
 
   useEffect(() => {
     loadItens();
@@ -40,6 +62,82 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      if (editingItem) {
+        const { error } = await supabase
+          .from('itens_pano')
+          .update({
+            categoria: formData.categoria,
+            descricao: formData.descricao,
+            valor_unitario: formData.valor_unitario,
+          })
+          .eq('id', editingItem.id);
+
+        if (error) throw error;
+      } else {
+        const dataWithUserId = await withUserId({
+          pano_id: pano.id,
+          ...formData,
+          quantidade_total: formData.quantidade_inicial,
+          quantidade_disponivel: formData.quantidade_inicial,
+        });
+        const { error } = await supabase
+          .from('itens_pano')
+          .insert([dataWithUserId]);
+
+        if (error) throw error;
+      }
+
+      resetForm();
+      loadItens();
+    } catch (error) {
+      console.error('Erro ao salvar item:', error);
+      alert('Erro ao salvar item');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja realmente excluir este item?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('itens_pano')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      loadItens();
+    } catch (error) {
+      console.error('Erro ao excluir item:', error);
+      alert('Erro ao excluir item');
+    }
+  };
+
+  const handleEdit = (item: ItemPano) => {
+    setEditingItem(item);
+    setFormData({
+      categoria: item.categoria,
+      descricao: item.descricao,
+      quantidade_inicial: item.quantidade_disponivel,
+      valor_unitario: item.valor_unitario,
+    });
+    setShowForm(true);
+  };
+
+  const resetForm = () => {
+    setShowForm(false);
+    setEditingItem(null);
+    setFormData({
+      categoria: 'Pulseira',
+      descricao: '',
+      quantidade_inicial: 1,
+      valor_unitario: 0,
+    });
   };
 
   const itensPorCategoria: ItemPorCategoria[] = itens
@@ -101,13 +199,99 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
                 <p className="text-sm text-gray-600">{pano.nome}</p>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5 text-gray-500" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowForm(!showForm)}
+                className="btn-primary flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                {showForm ? 'Cancelar' : 'Novo Item'}
+              </button>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
           </div>
+
+          {showForm && (
+            <form onSubmit={handleSubmit} className="bg-gray-50 p-4 rounded-lg space-y-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Categoria
+                  </label>
+                  <select
+                    value={formData.categoria}
+                    onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                    className="input-field"
+                  >
+                    {CATEGORIAS.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Descrição
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.descricao}
+                    onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                    className="input-field"
+                    placeholder="Ex: Pulseira - 316"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Valor Unitário (R$)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.valor_unitario}
+                    onChange={(e) => setFormData({ ...formData, valor_unitario: parseFloat(e.target.value) })}
+                    className="input-field"
+                    required
+                  />
+                </div>
+                {!editingItem && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Quantidade
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={formData.quantidade_inicial}
+                      onChange={(e) => setFormData({ ...formData, quantidade_inicial: parseInt(e.target.value) })}
+                      className="input-field"
+                      required
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <button type="submit" className="btn-primary flex-1">
+                  {editingItem ? 'Salvar Alterações' : 'Adicionar Item'}
+                </button>
+                {editingItem && (
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="btn-secondary"
+                  >
+                    Cancelar
+                  </button>
+                )}
+              </div>
+            </form>
+          )}
 
           <input
             type="text"
@@ -126,7 +310,7 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
           <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
             <Package className="w-16 h-16 mb-4 opacity-50" />
             <p className="text-lg font-medium">Nenhum item cadastrado</p>
-            <p className="text-sm">Use o OCR ou cadastre manualmente</p>
+            <p className="text-sm">Clique em "Novo Item" para adicionar</p>
           </div>
         ) : (
           <>
@@ -208,12 +392,22 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
                                 </div>
                               </div>
 
-                              <button
-                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                title="Editar item"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleEdit(item)}
+                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                  title="Editar item"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(item.id)}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Excluir item"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
                             </div>
                           ))}
                         </div>
