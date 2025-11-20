@@ -49,11 +49,13 @@ export default function Login() {
         <div className="flex flex-col items-center justify-center mb-8">
           <div className="relative mb-6">
             <div className="absolute inset-0 bg-gold-ak rounded-full blur-2xl opacity-40 animate-pulse-slow"></div>
-            <img
-              src="/esfera logo.png"
-              alt="SPHERE Logo"
-              className="relative w-28 h-28 object-contain drop-shadow-2xl"
-            />
+            <div className="relative w-28 h-28 rounded-full overflow-hidden bg-gradient-to-br from-silk to-white shadow-2xl border-4 border-gold-ak p-2">
+              <img
+                src="/esfera logo.png"
+                alt="SPHERE Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
           </div>
           <h1 className="text-4xl font-bold text-center text-charcoal mb-2">
             SPHERE
