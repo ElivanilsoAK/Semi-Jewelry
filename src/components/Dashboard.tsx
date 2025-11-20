@@ -43,11 +43,11 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-silk to-white shadow-lg border-2 border-gold-ak p-1">
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-silk to-white shadow-lg border-2 border-gold-ak">
                 <img
                   src="/esfera logo.png"
                   alt="SPHERE"
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover scale-100"
                 />
               </div>
               <div>
