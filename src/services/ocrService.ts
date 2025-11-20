@@ -1,9 +1,10 @@
 import Tesseract from 'tesseract.js';
 
 export interface ExtractedItem {
-  numero: string;
   categoria: string;
-  valor?: number;
+  valor: number;
+  quantidade: number;
+  descricao: string;
 }
 
 export interface OCRResult {
@@ -13,66 +14,127 @@ export interface OCRResult {
 }
 
 const CATEGORIAS_MAP: Record<string, string> = {
-  'pulseiras': 'pulseira',
-  'pulseira': 'pulseira',
-  'correntes': 'colar',
-  'corrente': 'colar',
-  'pingentes': 'pingente',
-  'pingente': 'pingente',
-  'aneis': 'anel',
-  'anel': 'anel',
-  'brincos g': 'brinco',
-  'brincos i': 'brinco',
-  'brincos m': 'brinco',
-  'brinco': 'brinco',
-  'argolas': 'argola',
-  'argola': 'argola',
+  'pulseiras': 'Pulseira',
+  'pulseira': 'Pulseira',
+  'correntes': 'Corrente',
+  'corrente': 'Corrente',
+  'pingentes': 'Pingente',
+  'pingente': 'Pingente',
+  'aneis': 'Anel',
+  'anel': 'Anel',
+  'brincos g': 'Brinco G',
+  'brincos i': 'Brinco I',
+  'brincos m': 'Brinco M',
+  'brinco': 'Brinco',
+  'argolas': 'Argola',
+  'argola': 'Argola',
 };
 
-function parseInventoryTable(text: string): ExtractedItem[] {
-  const items: ExtractedItem[] = [];
-  const lines = text.split('\n').filter(line => line.trim());
+interface TableData {
+  headers: string[];
+  rows: string[][];
+}
 
-  let currentCategory = 'outro';
+function extractTableStructure(text: string): TableData {
+  const lines = text.split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
 
-  for (const line of lines) {
-    const cleanLine = line.toLowerCase().trim();
+  const headers: string[] = [];
+  const rows: string[][] = [];
 
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const cleanLine = line.toLowerCase();
+
+    // Detectar linha de cabeçalho (categorias)
     const categoryMatch = Object.keys(CATEGORIAS_MAP).find(cat =>
       cleanLine.includes(cat)
     );
-    if (categoryMatch) {
-      currentCategory = CATEGORIAS_MAP[categoryMatch];
+
+    if (categoryMatch && headers.length === 0) {
+      // Extrair todos os headers da linha
+      const parts = line.split(/\s+|\|/).filter(p => p.trim());
+      headers.push(...parts.map(p => {
+        const normalized = p.toLowerCase().trim();
+        return CATEGORIAS_MAP[normalized] || p;
+      }));
       continue;
     }
 
-    const numbers = line.match(/\b\d{2,4}\b/g);
-    if (numbers) {
-      for (const numero of numbers) {
-        if (parseInt(numero) > 10 && parseInt(numero) < 10000) {
-          items.push({
-            numero,
-            categoria: currentCategory,
-          });
+    // Extrair valores numéricos da linha
+    const numbers = line.match(/\d+/g);
+    if (numbers && numbers.length > 0) {
+      const validNumbers = numbers
+        .map(n => parseInt(n))
+        .filter(n => n >= 10 && n < 10000);
+
+      if (validNumbers.length > 0) {
+        rows.push(validNumbers.map(String));
+      }
+    }
+  }
+
+  return { headers, rows };
+}
+
+function parseInventoryTable(text: string): ExtractedItem[] {
+  const items: ExtractedItem[] = [];
+  const { headers, rows } = extractTableStructure(text);
+
+  console.log('Headers:', headers);
+  console.log('Rows:', rows);
+
+  if (headers.length === 0 || rows.length === 0) {
+    return items;
+  }
+
+  // Processar cada coluna (categoria)
+  for (let colIndex = 0; colIndex < headers.length; colIndex++) {
+    const categoria = headers[colIndex];
+    const valorCounts = new Map<number, number>();
+
+    // Coletar todos os valores desta coluna
+    const valoresColuna: number[] = [];
+    for (const row of rows) {
+      if (row[colIndex]) {
+        const valor = parseInt(row[colIndex]);
+        if (!isNaN(valor) && valor >= 10 && valor < 10000) {
+          valoresColuna.push(valor);
+          valorCounts.set(valor, (valorCounts.get(valor) || 0) + 1);
         }
       }
     }
+
+    // Criar itens agrupando valores repetidos
+    valorCounts.forEach((quantidade, valor) => {
+      items.push({
+        categoria,
+        valor,
+        quantidade,
+        descricao: `${categoria} - ${valor}`
+      });
+    });
   }
 
   return items;
 }
 
 function deduplicateItems(items: ExtractedItem[]): ExtractedItem[] {
-  const seen = new Set<string>();
-  return items.filter(item => {
-    const key = `${item.categoria}-${item.numero}`;
-    if (seen.has(key)) {
-      return false;
+  const map = new Map<string, ExtractedItem>();
+
+  items.forEach(item => {
+    const key = `${item.categoria}-${item.valor}`;
+    const existing = map.get(key);
+
+    if (existing) {
+      existing.quantidade += item.quantidade;
+    } else {
+      map.set(key, { ...item });
     }
-    seen.has(key);
-    seen.add(key);
-    return true;
   });
+
+  return Array.from(map.values());
 }
 
 export async function processInventoryImage(imageFile: File | string): Promise<OCRResult> {
@@ -89,6 +151,8 @@ export async function processInventoryImage(imageFile: File | string): Promise<O
 
     const extractedItems = parseInventoryTable(text);
     const uniqueItems = deduplicateItems(extractedItems);
+
+    console.log('Extracted Items:', uniqueItems);
 
     return {
       items: uniqueItems,
