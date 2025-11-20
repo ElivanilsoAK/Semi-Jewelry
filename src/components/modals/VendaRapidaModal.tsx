@@ -20,6 +20,9 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
   const [selectedCliente, setSelectedCliente] = useState('');
   const [selectedItems, setSelectedItems] = useState<{ itemId: string; quantidade: number }[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [formaPagamento, setFormaPagamento] = useState<'avista' | 'parcelado'>('avista');
+  const [numeroParcelas, setNumeroParcelas] = useState(1);
+  const [valorEntrada, setValorEntrada] = useState(0);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -66,13 +69,23 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
       return;
     }
 
+    const totalVenda = calculateTotal();
+
+    if (formaPagamento === 'parcelado' && valorEntrada > totalVenda) {
+      alert('Valor de entrada não pode ser maior que o total da venda');
+      return;
+    }
+
     setLoading(true);
     try {
+      // Criar venda
+      const statusPagamento = formaPagamento === 'avista' ? 'pago' : valorEntrada >= totalVenda ? 'pago' : 'pendente';
       const vendaComUserId = await withUserId({
-          cliente_id: selectedCliente,
-          valor_total: calculateTotal(),
-          status_pagamento: 'pendente'
-        });
+        cliente_id: selectedCliente,
+        valor_total: totalVenda,
+        status_pagamento: statusPagamento
+      });
+
       const { data: venda, error: vendaError } = await supabase
         .from('vendas')
         .insert([vendaComUserId])
@@ -81,6 +94,7 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
 
       if (vendaError) throw vendaError;
 
+      // Inserir itens da venda
       const itensVendaBase = selectedItems.map(selected => {
         const item = items.find(i => i.id === selected.itemId)!;
         return {
@@ -93,10 +107,56 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
       });
 
       const itensVenda = await Promise.all(itensVendaBase.map(item => withUserId(item)));
-
       const { error: itensError } = await supabase.from('itens_venda').insert(itensVenda);
       if (itensError) throw itensError;
 
+      // Criar pagamentos
+      const hoje = new Date();
+      const pagamentos = [];
+
+      if (formaPagamento === 'avista') {
+        // Pagamento à vista
+        pagamentos.push(await withUserId({
+          venda_id: venda.id,
+          valor: totalVenda,
+          data_vencimento: hoje.toISOString().split('T')[0],
+          data_pagamento: hoje.toISOString().split('T')[0],
+          status: 'pago'
+        }));
+      } else {
+        // Pagamento parcelado
+        const valorRestante = totalVenda - valorEntrada;
+
+        // Pagamento de entrada (se houver)
+        if (valorEntrada > 0) {
+          pagamentos.push(await withUserId({
+            venda_id: venda.id,
+            valor: valorEntrada,
+            data_vencimento: hoje.toISOString().split('T')[0],
+            data_pagamento: hoje.toISOString().split('T')[0],
+            status: 'pago'
+          }));
+        }
+
+        // Parcelas restantes
+        const valorParcela = valorRestante / numeroParcelas;
+        for (let i = 0; i < numeroParcelas; i++) {
+          const dataVencimento = new Date(hoje);
+          dataVencimento.setMonth(dataVencimento.getMonth() + i + 1);
+
+          pagamentos.push(await withUserId({
+            venda_id: venda.id,
+            valor: valorParcela,
+            data_vencimento: dataVencimento.toISOString().split('T')[0],
+            status: 'pendente'
+          }));
+        }
+      }
+
+      const { error: pagamentosError } = await supabase.from('pagamentos').insert(pagamentos);
+      if (pagamentosError) throw pagamentosError;
+
+      // Atualizar estoque
       for (const selected of selectedItems) {
         const item = items.find(i => i.id === selected.itemId)!;
         await supabase
@@ -171,20 +231,106 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
           </div>
 
           {selectedItems.length > 0 && (
-            <div className="border-t pt-4">
-              <h3 className="font-semibold mb-2">Itens Selecionados</h3>
-              {selectedItems.map(selected => {
-                const item = items.find(i => i.id === selected.itemId);
-                return (
-                  <div key={selected.itemId} className="flex justify-between py-2">
-                    <span>{item?.descricao} x{selected.quantidade}</span>
-                    <span>R$ {((item?.valor_unitario || 0) * selected.quantidade).toFixed(2)}</span>
+            <div className="border-t pt-4 space-y-4">
+              <div>
+                <h3 className="font-semibold mb-2">Itens Selecionados</h3>
+                {selectedItems.map(selected => {
+                  const item = items.find(i => i.id === selected.itemId);
+                  return (
+                    <div key={selected.itemId} className="flex justify-between py-2">
+                      <span>{item?.descricao} x{selected.quantidade}</span>
+                      <span>R$ {((item?.valor_unitario || 0) * selected.quantidade).toFixed(2)}</span>
+                    </div>
+                  );
+                })}
+                <div className="border-t pt-2 mt-2 flex justify-between font-bold text-lg">
+                  <span>Total:</span>
+                  <span className="text-emerald-600">R$ {calculateTotal().toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-3">Forma de Pagamento</h3>
+                <div className="flex gap-3 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setFormaPagamento('avista')}
+                    className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
+                      formaPagamento === 'avista'
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-700 font-semibold'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    À Vista
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormaPagamento('parcelado')}
+                    className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all ${
+                      formaPagamento === 'parcelado'
+                        ? 'border-emerald-600 bg-emerald-50 text-emerald-700 font-semibold'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    Parcelado
+                  </button>
+                </div>
+
+                {formaPagamento === 'parcelado' && (
+                  <div className="space-y-3 animate-fade-in">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Valor de Entrada (Opcional)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max={calculateTotal()}
+                        value={valorEntrada}
+                        onChange={(e) => setValorEntrada(Number(e.target.value))}
+                        placeholder="0.00"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Número de Parcelas
+                      </label>
+                      <select
+                        value={numeroParcelas}
+                        onChange={(e) => setNumeroParcelas(Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12].map(n => (
+                          <option key={n} value={n}>{n}x</option>
+                        ))}
+                      </select>
+                    </div>
+                    {valorEntrada < calculateTotal() && (
+                      <div className="bg-gray-50 p-3 rounded-lg text-sm">
+                        <div className="flex justify-between mb-1">
+                          <span className="text-gray-600">Valor restante:</span>
+                          <span className="font-semibold">R$ {(calculateTotal() - valorEntrada).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Valor da parcela:</span>
+                          <span className="font-semibold text-emerald-600">
+                            {numeroParcelas}x R$ {((calculateTotal() - valorEntrada) / numeroParcelas).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                );
-              })}
-              <div className="border-t pt-2 mt-2 flex justify-between font-bold">
-                <span>Total:</span>
-                <span>R$ {calculateTotal().toFixed(2)}</span>
+                )}
+
+                {formaPagamento === 'avista' && (
+                  <div className="bg-emerald-50 p-3 rounded-lg animate-fade-in">
+                    <p className="text-sm text-emerald-700">
+                      ✓ Pagamento será registrado como pago imediatamente
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
