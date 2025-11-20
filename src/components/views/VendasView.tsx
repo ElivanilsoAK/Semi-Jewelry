@@ -61,11 +61,13 @@ export default function VendasView() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pago':
-        return 'bg-green-100 text-green-700';
+        return 'bg-green-500 text-white';
       case 'parcial':
-        return 'bg-yellow-100 text-yellow-700';
+        return 'bg-yellow-500 text-white';
+      case 'atrasado':
+        return 'bg-red-600 text-white animate-pulse';
       default:
-        return 'bg-red-100 text-red-700';
+        return 'bg-orange-500 text-white';
     }
   };
 
@@ -75,6 +77,8 @@ export default function VendasView() {
         return 'Pago';
       case 'parcial':
         return 'Parcial';
+      case 'atrasado':
+        return 'Atrasado';
       default:
         return 'Pendente';
     }
@@ -147,7 +151,7 @@ export default function VendasView() {
                     R$ {Number(venda.valor_total).toFixed(2)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(venda.status_pagamento)}`}>
+                    <span className={`px-3 py-1.5 text-xs font-bold rounded-lg ${getStatusColor(venda.status_pagamento)}`}>
                       {getStatusLabel(venda.status_pagamento)}
                     </span>
                   </td>

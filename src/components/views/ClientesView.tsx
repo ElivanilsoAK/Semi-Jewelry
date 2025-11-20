@@ -12,6 +12,7 @@ export default function ClientesView() {
   const [formData, setFormData] = useState({
     nome: '',
     telefone: '',
+    cpf_cnpj: '',
     email: '',
     endereco: '',
   });
@@ -70,6 +71,7 @@ export default function ClientesView() {
     setFormData({
       nome: cliente.nome,
       telefone: cliente.telefone || '',
+      cpf_cnpj: cliente.cpf_cnpj || '',
       email: cliente.email || '',
       endereco: cliente.endereco || '',
     });
@@ -94,13 +96,14 @@ export default function ClientesView() {
   };
 
   const resetForm = () => {
-    setFormData({ nome: '', telefone: '', email: '', endereco: '' });
+    setFormData({ nome: '', telefone: '', cpf_cnpj: '', email: '', endereco: '' });
     setEditingCliente(null);
   };
 
   const filteredClientes = clientes.filter((cliente) =>
     cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cliente.telefone?.toLowerCase().includes(searchTerm.toLowerCase())
+    cliente.telefone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    cliente.cpf_cnpj?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -222,16 +225,32 @@ export default function ClientesView() {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Telefone
-                </label>
-                <input
-                  type="tel"
-                  value={formData.telefone}
-                  onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Telefone
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.telefone}
+                    onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                    placeholder="(00) 00000-0000"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    CPF/CNPJ
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.cpf_cnpj}
+                    onChange={(e) => setFormData({ ...formData, cpf_cnpj: e.target.value })}
+                    placeholder="000.000.000-00"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  />
+                </div>
               </div>
 
               <div>

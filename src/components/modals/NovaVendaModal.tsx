@@ -29,6 +29,7 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
 
   const [numeroParcelas, setNumeroParcelas] = useState(1);
   const [datasParcelas, setDatasParcelas] = useState<string[]>(['']);
+  const [formaPagamento, setFormaPagamento] = useState('dinheiro');
   const [observacoes, setObservacoes] = useState('');
 
   const [saving, setSaving] = useState(false);
@@ -144,6 +145,8 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
           cliente_id: clienteSelecionado,
           valor_total: valorTotal,
           status_pagamento: 'pendente',
+          forma_pagamento: formaPagamento,
+          desconto: 0,
           observacoes,
         });
       const { data: venda, error: vendaError } = await supabase
@@ -406,6 +409,24 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
                 <p className="text-lg font-bold text-gray-800 mb-2">
                   Valor Total: R$ {calcularValorTotal().toFixed(2)}
                 </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Forma de Pagamento
+                </label>
+                <select
+                  value={formaPagamento}
+                  onChange={(e) => setFormaPagamento(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                >
+                  <option value="dinheiro">Dinheiro</option>
+                  <option value="pix">PIX</option>
+                  <option value="cartao_credito">Cartão de Crédito</option>
+                  <option value="cartao_debito">Cartão de Débito</option>
+                  <option value="transferencia">Transferência Bancária</option>
+                  <option value="boleto">Boleto</option>
+                </select>
               </div>
 
               <div>
