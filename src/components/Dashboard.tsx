@@ -43,14 +43,11 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-silk shadow-lg border-2 border-gold-ak">
-                <img
-                  src="/Gemini_Generated_Image_x8iaklx8iaklx8ia.png"
-                  alt="SPHERE"
-                  className="w-full h-full object-cover object-center scale-150"
-                  style={{ objectPosition: '50% 35%' }}
-                />
-              </div>
+              <img
+                src="/esfera logo.png"
+                alt="SPHERE"
+                className="w-10 h-10 object-contain"
+              />
               <div>
                 <h1 className="text-xl font-bold text-charcoal">SPHERE</h1>
                 <p className="text-xs text-gray-medium hidden sm:block">by Magold Ana Kelly</p>

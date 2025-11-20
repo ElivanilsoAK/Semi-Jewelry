@@ -45,20 +45,15 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-silk via-ice to-canvas flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[url('/Gemini_Generated_Image_x8iaklx8iaklx8ia.png')] bg-center bg-no-repeat bg-contain opacity-5"></div>
-
       <div className="relative bg-white rounded-2xl shadow-2xl p-8 md:p-10 w-full max-w-md border border-line animate-fade-in-scale">
         <div className="flex flex-col items-center justify-center mb-8">
           <div className="relative mb-6">
             <div className="absolute inset-0 bg-gold-ak rounded-full blur-2xl opacity-40 animate-pulse-slow"></div>
-            <div className="relative w-24 h-24 rounded-full overflow-hidden bg-silk shadow-2xl border-4 border-gold-ak">
-              <img
-                src="/Gemini_Generated_Image_x8iaklx8iaklx8ia.png"
-                alt="SPHERE Logo"
-                className="w-full h-full object-cover object-center scale-150"
-                style={{ objectPosition: '50% 35%' }}
-              />
-            </div>
+            <img
+              src="/esfera logo.png"
+              alt="SPHERE Logo"
+              className="relative w-28 h-28 object-contain drop-shadow-2xl"
+            />
           </div>
           <h1 className="text-4xl font-bold text-center text-charcoal mb-2">
             SPHERE
