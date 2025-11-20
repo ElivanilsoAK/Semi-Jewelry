@@ -25,6 +25,10 @@ export interface Cliente {
   telefone: string | null;
   email: string | null;
   endereco: string | null;
+  cpf_cnpj: string | null;
+  data_nascimento: string | null;
+  observacoes: string | null;
+  foto_url: string | null;
   created_at: string;
 }
 
@@ -39,6 +43,9 @@ export interface Pano {
   status: 'ativo' | 'devolvido';
   fornecedor: string;
   comissao_percentual: number;
+  percentual_comissao: number;
+  cliente_responsavel: string | null;
+  data_prevista_retorno: string | null;
   ocr_processed: boolean;
   ocr_data: any | null;
   created_at: string;
@@ -60,9 +67,13 @@ export interface Venda {
   id: string;
   user_id: string;
   cliente_id: string;
+  cliente_nome: string;
   data_venda: string;
   valor_total: number;
-  status_pagamento: 'pendente' | 'parcial' | 'pago';
+  status_pagamento: 'pendente' | 'parcial' | 'pago' | 'atrasado';
+  forma_pagamento: string;
+  desconto: number;
+  motivo_cancelamento: string | null;
   observacoes: string | null;
   created_at: string;
 }
@@ -72,6 +83,7 @@ export interface ItemVenda {
   user_id: string;
   venda_id: string;
   item_pano_id: string;
+  descricao: string;
   quantidade: number;
   valor_unitario: number;
   valor_total: number;
