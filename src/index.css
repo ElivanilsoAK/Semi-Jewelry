@@ -15,6 +15,16 @@
   body {
     @apply antialiased;
   }
+
+  /* Smooth transitions for all interactive elements */
+  button, a, input, select, textarea {
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  /* Smooth hover scale */
+  button:active {
+    @apply scale-95;
+  }
 }
 
 /* Custom Animations */
@@ -82,20 +92,71 @@
     }
   }
 
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes bounceIn {
+    0% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    70% {
+      transform: scale(0.9);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
   .animate-fade-in {
-    animation: fadeIn 0.3s ease-out;
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .animate-fade-in-scale {
-    animation: fadeInScale 0.3s ease-out;
+    animation: fadeInScale 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .animate-slide-in-right {
-    animation: slideInRight 0.3s ease-out;
+    animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .animate-slide-in-left {
-    animation: slideInLeft 0.3s ease-out;
+    animation: slideInLeft 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .animate-slide-down {
+    animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .animate-bounce-in {
+    animation: bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
 
   .animate-pulse-slow {
@@ -111,16 +172,31 @@
 
   /* Smooth Hover Effects */
   .card-hover {
-    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+    @apply transition-all duration-300 ease-out hover:shadow-xl hover:-translate-y-2;
   }
 
   .button-hover {
-    @apply transition-all duration-200 hover:scale-105 active:scale-95;
+    @apply transition-all duration-200 ease-out hover:scale-105 active:scale-95;
   }
 
   /* Focus Styles */
   .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2;
+    @apply focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all duration-200;
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply backdrop-blur-lg bg-white/80 border border-white/20;
+  }
+
+  /* Smooth scale */
+  .hover-scale {
+    @apply transition-transform duration-300 ease-out hover:scale-105;
+  }
+
+  /* Smooth lift */
+  .hover-lift {
+    @apply transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-lg;
   }
 
   /* Smooth Scrollbar */
@@ -170,23 +246,30 @@
 
   /* Button with ripple effect simulation */
   .btn-primary {
-    @apply bg-emerald-600 text-white px-4 py-2 rounded-lg;
+    @apply bg-emerald-600 text-white px-4 py-2 rounded-lg font-medium;
     @apply hover:bg-emerald-700 active:bg-emerald-800;
-    @apply transition-all duration-200;
-    @apply hover:shadow-lg active:scale-95;
+    @apply transition-all duration-200 ease-out;
+    @apply hover:shadow-lg hover:scale-105 active:scale-95;
+    @apply focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+    @apply flex items-center justify-center gap-2;
   }
 
   .btn-secondary {
-    @apply bg-gray-100 text-gray-700 px-4 py-2 rounded-lg;
+    @apply bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium;
     @apply hover:bg-gray-200 active:bg-gray-300;
-    @apply transition-all duration-200;
-    @apply hover:shadow active:scale-95;
+    @apply transition-all duration-200 ease-out;
+    @apply hover:shadow hover:scale-105 active:scale-95;
+    @apply focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100;
+    @apply flex items-center justify-center gap-2;
   }
 
   /* Card Component */
   .card {
     @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6;
-    @apply transition-all duration-200 hover:shadow-md;
+    @apply transition-all duration-300 ease-out hover:shadow-lg;
+    @apply animate-fade-in;
   }
 
   /* Input Field */

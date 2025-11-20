@@ -90,13 +90,43 @@ export default function EditarVendaModal({ venda, onClose, onSave, onDelete }: E
 
       if (vendaError) throw vendaError;
 
+      const { data: itensOriginais } = await supabase
+        .from('itens_venda')
+        .select('*')
+        .eq('venda_id', venda.id);
+
       for (const item of itens) {
-        if (item.deleted) {
+        if (item.deleted && item.item_pano_id) {
+          const itemOriginal = itensOriginais?.find(i => i.id === item.id);
+          if (itemOriginal) {
+            await supabase.rpc('increment_stock', {
+              item_id: item.item_pano_id,
+              amount: itemOriginal.quantidade
+            });
+          }
+
           await supabase
             .from('itens_venda')
             .delete()
             .eq('id', item.id);
-        } else if (item.id) {
+        } else if (item.id && item.item_pano_id) {
+          const itemOriginal = itensOriginais?.find(i => i.id === item.id);
+          if (itemOriginal && itemOriginal.quantidade !== item.quantidade) {
+            const diferenca = itemOriginal.quantidade - item.quantidade;
+
+            if (diferenca > 0) {
+              await supabase.rpc('increment_stock', {
+                item_id: item.item_pano_id,
+                amount: diferenca
+              });
+            } else if (diferenca < 0) {
+              await supabase.rpc('decrement_stock', {
+                item_id: item.item_pano_id,
+                amount: Math.abs(diferenca)
+              });
+            }
+          }
+
           await supabase
             .from('itens_venda')
             .update({
@@ -124,6 +154,22 @@ export default function EditarVendaModal({ venda, onClose, onSave, onDelete }: E
 
     setSaving(true);
     try {
+      const { data: itensVenda } = await supabase
+        .from('itens_venda')
+        .select('*')
+        .eq('venda_id', venda.id);
+
+      if (itensVenda) {
+        for (const item of itensVenda) {
+          if (item.item_pano_id) {
+            await supabase.rpc('increment_stock', {
+              item_id: item.item_pano_id,
+              amount: item.quantidade
+            });
+          }
+        }
+      }
+
       await supabase.from('itens_venda').delete().eq('venda_id', venda.id);
       await supabase.from('pagamentos').delete().eq('venda_id', venda.id);
       const { error } = await supabase.from('vendas').delete().eq('id', venda.id);
