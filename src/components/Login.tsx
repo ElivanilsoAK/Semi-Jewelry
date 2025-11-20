@@ -1,25 +1,38 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Gem, Loader2 } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPassword } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
 
     try {
-      if (isSignUp) {
+      if (isForgotPassword) {
+        await resetPassword(email);
+        setSuccess('Email de recuperação enviado! Verifique sua caixa de entrada.');
+        setTimeout(() => {
+          setIsForgotPassword(false);
+          setSuccess('');
+        }, 3000);
+      } else if (isSignUp) {
         await signUp(email, password);
-        alert('Conta criada com sucesso! Faça login para continuar.');
-        setIsSignUp(false);
+        setSuccess('Conta criada com sucesso! Faça login para continuar.');
+        setTimeout(() => {
+          setIsSignUp(false);
+          setSuccess('');
+        }, 2000);
       } else {
         await signIn(email, password);
       }
@@ -31,76 +44,148 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md border border-gray-100 animate-fade-in-scale">
+    <div className="min-h-screen bg-gradient-to-br from-silk via-ice to-canvas flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-[url('/Gemini_Generated_Image_x8iaklx8iaklx8ia.png')] bg-center bg-no-repeat bg-contain opacity-5"></div>
+
+      <div className="relative bg-white rounded-2xl shadow-2xl p-8 md:p-10 w-full max-w-md border border-line animate-fade-in-scale">
         <div className="flex flex-col items-center justify-center mb-8">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-2xl blur-lg opacity-50 animate-pulse-slow"></div>
-            <div className="relative bg-gradient-to-br from-emerald-600 to-teal-600 p-4 rounded-2xl shadow-lg mb-4">
-              <Gem className="w-10 h-10 text-white" />
-            </div>
+          <div className="relative mb-6">
+            <div className="absolute inset-0 bg-gold-ak rounded-full blur-xl opacity-30 animate-pulse-slow"></div>
+            <img
+              src="/Gemini_Generated_Image_x8iaklx8iaklx8ia.png"
+              alt="SPHERE Logo"
+              className="relative w-32 h-32 object-contain"
+            />
           </div>
-          <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-1">
-            Semi-Joias
+          <h1 className="text-4xl font-bold text-center text-charcoal mb-2">
+            SPHERE
           </h1>
-          <p className="text-sm text-gray-500 font-medium">Sistema de Gestão</p>
+          <p className="text-sm text-gray-medium font-medium">by Magold Ana Kelly</p>
         </div>
 
-        <p className="text-gray-600 text-center mb-8 font-medium">
-          {isSignUp ? 'Criar nova conta' : 'Faça login para continuar'}
-        </p>
+        {isForgotPassword ? (
+          <>
+            <div className="mb-6">
+              <button
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  setError('');
+                  setSuccess('');
+                }}
+                className="flex items-center gap-2 text-gray-medium hover:text-charcoal transition-colors text-sm font-medium"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Voltar ao login
+              </button>
+            </div>
+
+            <h2 className="text-xl font-bold text-charcoal mb-2">Recuperar Senha</h2>
+            <p className="text-gray-medium text-sm mb-6">
+              Digite seu email e enviaremos um link para redefinir sua senha.
+            </p>
+          </>
+        ) : (
+          <p className="text-gray-medium text-center mb-8 font-medium">
+            {isSignUp ? 'Criar nova conta' : 'Faça login para continuar'}
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-charcoal mb-2">
               Email
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              placeholder="seu@email.com"
+              className="w-full px-4 py-3 border-2 border-line rounded-lg focus:ring-2 focus:ring-gold-ak focus:border-gold-ak transition-all text-charcoal placeholder-gray-medium"
               required
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Senha
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-              required
-              minLength={6}
-            />
-          </div>
+          {!isForgotPassword && (
+            <div>
+              <label className="block text-sm font-semibold text-charcoal mb-2">
+                Senha
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-3 border-2 border-line rounded-lg focus:ring-2 focus:ring-gold-ak focus:border-gold-ak transition-all text-charcoal"
+                required
+                minLength={6}
+              />
+            </div>
+          )}
+
+          {!isForgotPassword && !isSignUp && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPassword(true);
+                  setError('');
+                }}
+                className="text-sm text-gold-ak hover:text-amber-warning font-semibold transition-colors"
+              >
+                Esqueceu a senha?
+              </button>
+            </div>
+          )}
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <div className="bg-ruby-light border-2 border-ruby-critical text-ruby-critical px-4 py-3 rounded-lg text-sm font-medium animate-slide-down">
               {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="bg-emerald-light border-2 border-emerald-success text-emerald-success px-4 py-3 rounded-lg text-sm font-medium animate-slide-down flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              {success}
             </div>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold py-3 px-4 rounded-lg transition-all shadow-md hover:shadow-lg disabled:opacity-50 button-hover flex items-center justify-center gap-2"
+            className="w-full bg-gold-ak hover:bg-amber-warning text-white font-bold py-3.5 px-4 rounded-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"
           >
             {loading && <Loader2 className="w-5 h-5 animate-spin" />}
-            {loading ? 'Aguarde...' : isSignUp ? 'Criar Conta' : 'Entrar'}
+            {loading
+              ? 'Aguarde...'
+              : isForgotPassword
+              ? 'Enviar Link de Recuperação'
+              : isSignUp
+              ? 'Criar Conta'
+              : 'Entrar'}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="text-emerald-600 hover:text-emerald-700 text-sm font-semibold transition-colors"
-          >
-            {isSignUp ? 'Já tem conta? Faça login' : 'Não tem conta? Cadastre-se'}
-          </button>
+        {!isForgotPassword && (
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError('');
+              }}
+              className="text-gold-ak hover:text-amber-warning text-sm font-bold transition-colors"
+            >
+              {isSignUp ? 'Já tem conta? Faça login' : 'Não tem conta? Cadastre-se'}
+            </button>
+          </div>
+        )}
+
+        <div className="mt-8 pt-6 border-t border-line">
+          <p className="text-xs text-center text-gray-medium">
+            Sistema de Gestão para Semi-Joias
+            <br />
+            <span className="font-semibold text-gold-ak">SPHERE</span> © 2024
+          </p>
         </div>
       </div>
     </div>
