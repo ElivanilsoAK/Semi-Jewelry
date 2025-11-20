@@ -14,19 +14,6 @@ interface ItemPorCategoria {
   quantidade: number;
 }
 
-const CATEGORIAS = [
-  'Pulseira',
-  'Corrente',
-  'Pingente',
-  'Anel',
-  'Brinco',
-  'Argola',
-  'Tornozeleira',
-  'Conjunto',
-  'Infantil',
-  'Outro',
-] as const;
-
 export default function ItensModal({ pano, onClose }: ItensModalProps) {
   const [itens, setItens] = useState<ItemPano[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,17 +21,41 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
   const [busca, setBusca] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<ItemPano | null>(null);
+  const [categorias, setCategorias] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
-    categoria: 'Pulseira',
+    categoria: '',
     descricao: '',
     quantidade_inicial: 1,
     valor_unitario: 0,
   });
 
   useEffect(() => {
+    loadCategorias();
     loadItens();
   }, [pano.id]);
+
+  async function loadCategorias() {
+    const { data, error } = await supabase
+      .from('categorias')
+      .select('nome')
+      .eq('ativo', true)
+      .order('ordem');
+
+    if (!error && data && data.length > 0) {
+      const nomesCategorias = data.map(c => c.nome);
+      setCategorias(nomesCategorias);
+      if (!formData.categoria) {
+        setFormData(prev => ({ ...prev, categoria: nomesCategorias[0] }));
+      }
+    } else {
+      const categoriasDefault = ['Pulseira', 'Corrente', 'Pingente', 'Anel', 'Brinco', 'Argola', 'Tornozeleira', 'Conjunto', 'Infantil', 'Outro'];
+      setCategorias(categoriasDefault);
+      if (!formData.categoria) {
+        setFormData(prev => ({ ...prev, categoria: categoriasDefault[0] }));
+      }
+    }
+  }
 
   const loadItens = async () => {
     try {
@@ -133,7 +144,7 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
     setShowForm(false);
     setEditingItem(null);
     setFormData({
-      categoria: 'Pulseira',
+      categoria: categorias[0] || 'Pulseira',
       descricao: '',
       quantidade_inicial: 1,
       valor_unitario: 0,
@@ -228,7 +239,7 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
                     onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
                     className="input-field"
                   >
-                    {CATEGORIAS.map(cat => (
+                    {categorias.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>

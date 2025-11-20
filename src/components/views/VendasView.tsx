@@ -195,6 +195,10 @@ export default function VendasView() {
             setEditingVenda(null);
             loadVendas();
           }}
+          onDelete={() => {
+            setEditingVenda(null);
+            loadVendas();
+          }}
         />
       )}
     </div>
