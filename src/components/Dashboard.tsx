@@ -38,24 +38,29 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <nav className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-40">
+    <div className="min-h-screen bg-ice">
+      <nav className="bg-white shadow-md border-b border-line sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-emerald-600 to-teal-600 p-2 rounded-xl shadow-lg">
-                <Package2 className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-silk shadow-lg border-2 border-gold-ak">
+                <img
+                  src="/Gemini_Generated_Image_x8iaklx8iaklx8ia.png"
+                  alt="SPHERE"
+                  className="w-full h-full object-cover object-center scale-150"
+                  style={{ objectPosition: '50% 35%' }}
+                />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-800">Semi Jewelry</h1>
-                <p className="text-xs text-gray-500 hidden sm:block">Sistema de Vendas</p>
+                <h1 className="text-xl font-bold text-charcoal">SPHERE</h1>
+                <p className="text-xs text-gray-medium hidden sm:block">by Magold Ana Kelly</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowVendaRapida(true)}
-                className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-4 py-2 rounded-lg transition-all shadow-md hover:shadow-lg font-medium"
+                className="flex items-center gap-2 bg-gold-ak hover:bg-amber-warning text-white px-4 py-2 rounded-lg transition-all shadow-md hover:shadow-lg font-medium"
               >
                 <Zap className="w-5 h-5" />
                 <span className="hidden sm:inline">Venda Rápida</span>
@@ -74,7 +79,7 @@ export default function Dashboard() {
       </nav>
 
       <div className="flex h-[calc(100vh-4rem)]">
-        <aside className="hidden md:block w-64 bg-white border-r border-gray-200 overflow-y-auto shadow-sm">
+        <aside className="hidden md:block w-64 bg-white border-r border-line overflow-y-auto shadow-sm">
           <nav className="p-4 space-y-1">
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -86,8 +91,8 @@ export default function Dashboard() {
                   onClick={() => setCurrentView(item.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                     isActive
-                      ? 'bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 font-semibold shadow-sm'
-                      : 'text-gray-700 hover:bg-gray-50'
+                      ? 'bg-silk text-gold-ak font-semibold shadow-sm border-l-4 border-gold-ak'
+                      : 'text-charcoal hover:bg-ice'
                   }`}
                 >
                   <Icon className="w-5 h-5" />

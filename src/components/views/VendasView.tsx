@@ -61,13 +61,13 @@ export default function VendasView() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pago':
-        return 'bg-green-500 text-white';
+        return 'bg-emerald-success text-white';
       case 'parcial':
-        return 'bg-yellow-500 text-white';
+        return 'bg-amber-warning text-white';
       case 'atrasado':
-        return 'bg-red-600 text-white animate-pulse';
+        return 'bg-ruby-critical text-white animate-pulse';
       default:
-        return 'bg-orange-500 text-white';
+        return 'bg-amber-warning text-white';
     }
   };
 
@@ -87,10 +87,10 @@ export default function VendasView() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Vendas</h1>
+        <h1 className="text-3xl font-bold text-charcoal">Vendas</h1>
         <button
           onClick={() => setShowNovaVenda(true)}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors"
+          className="flex items-center gap-2 bg-gold-ak hover:bg-amber-warning text-white px-4 py-2 rounded-lg transition-colors"
         >
           <Plus className="w-5 h-5" />
           Nova Venda

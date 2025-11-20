@@ -50,12 +50,15 @@ export default function Login() {
       <div className="relative bg-white rounded-2xl shadow-2xl p-8 md:p-10 w-full max-w-md border border-line animate-fade-in-scale">
         <div className="flex flex-col items-center justify-center mb-8">
           <div className="relative mb-6">
-            <div className="absolute inset-0 bg-gold-ak rounded-full blur-xl opacity-30 animate-pulse-slow"></div>
-            <img
-              src="/Gemini_Generated_Image_x8iaklx8iaklx8ia.png"
-              alt="SPHERE Logo"
-              className="relative w-32 h-32 object-contain"
-            />
+            <div className="absolute inset-0 bg-gold-ak rounded-full blur-2xl opacity-40 animate-pulse-slow"></div>
+            <div className="relative w-24 h-24 rounded-full overflow-hidden bg-silk shadow-2xl border-4 border-gold-ak">
+              <img
+                src="/Gemini_Generated_Image_x8iaklx8iaklx8ia.png"
+                alt="SPHERE Logo"
+                className="w-full h-full object-cover object-center scale-150"
+                style={{ objectPosition: '50% 35%' }}
+              />
+            </div>
           </div>
           <h1 className="text-4xl font-bold text-center text-charcoal mb-2">
             SPHERE
@@ -184,7 +187,7 @@ export default function Login() {
           <p className="text-xs text-center text-gray-medium">
             Sistema de Gestão para Semi-Joias
             <br />
-            <span className="font-semibold text-gold-ak">SPHERE</span> © 2024
+            <span className="font-semibold text-gold-ak">SPHERE</span> © 2025
           </p>
         </div>
       </div>

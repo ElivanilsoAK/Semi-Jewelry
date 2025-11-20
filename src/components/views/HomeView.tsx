@@ -91,14 +91,14 @@ export default function HomeView() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Carregando...</div>
+        <div className="text-gray-medium">Carregando...</div>
       </div>
     );
   }
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-800 mb-8">Dashboard</h1>
+      <h1 className="text-3xl font-bold text-charcoal mb-8">Dashboard</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {statCards.map((card) => {
@@ -106,14 +106,14 @@ export default function HomeView() {
           return (
             <div
               key={card.title}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+              className="bg-white rounded-xl shadow-sm border border-line p-6 hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600 mb-1">
                     {card.title}
                   </p>
-                  <p className="text-2xl font-bold text-gray-800">
+                  <p className="text-2xl font-bold text-charcoal">
                     {card.value}
                   </p>
                 </div>
@@ -130,18 +130,18 @@ export default function HomeView() {
         <div className="bg-white rounded-xl shadow-md p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="bg-emerald-100 p-3 rounded-lg">
-              <TrendingUp className="w-6 h-6 text-emerald-600" />
+              <TrendingUp className="w-6 h-6 text-gold-ak" />
             </div>
-            <h2 className="text-lg font-bold text-gray-800">Top 5 - Quem Compra Mais</h2>
+            <h2 className="text-lg font-bold text-charcoal">Top 5 - Quem Compra Mais</h2>
           </div>
           <div className="space-y-3">
             {topCompradores.map((cliente, idx) => (
               <div key={cliente.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3">
                   <span className="font-bold text-gray-400">#{idx + 1}</span>
-                  <span className="font-medium text-gray-800">{cliente.nome}</span>
+                  <span className="font-medium text-charcoal">{cliente.nome}</span>
                 </div>
-                <span className="font-bold text-emerald-600">R$ {cliente.total.toFixed(2)}</span>
+                <span className="font-bold text-gold-ak">R$ {cliente.total.toFixed(2)}</span>
               </div>
             ))}
           </div>
@@ -152,14 +152,14 @@ export default function HomeView() {
             <div className="bg-blue-100 p-3 rounded-lg">
               <Award className="w-6 h-6 text-blue-600" />
             </div>
-            <h2 className="text-lg font-bold text-gray-800">Top 5 - Quem Paga Bem</h2>
+            <h2 className="text-lg font-bold text-charcoal">Top 5 - Quem Paga Bem</h2>
           </div>
           <div className="space-y-3">
             {topPagadores.map((cliente, idx) => (
               <div key={cliente.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3">
                   <span className="font-bold text-gray-400">#{idx + 1}</span>
-                  <span className="font-medium text-gray-800">{cliente.nome}</span>
+                  <span className="font-medium text-charcoal">{cliente.nome}</span>
                 </div>
                 <span className="font-bold text-blue-600">{cliente.total} pagamentos</span>
               </div>
