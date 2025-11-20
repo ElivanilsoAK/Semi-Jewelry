@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
-import { FileText, Download, Printer, Calendar, Users, TrendingUp, Package } from 'lucide-react';
+import {
+  FileText, Download, Printer, Calendar, TrendingUp, Package,
+  BookOpen, BarChart3, PieChart, Settings, Plus, Trash2, Eye
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -12,55 +15,74 @@ interface ItemEstoque {
   foto_url?: string;
 }
 
-interface VendaRelatorio {
+interface Venda {
   id: string;
-  cliente_nome: string;
   data_venda: string;
   valor_total: number;
   status_pagamento: string;
+  clientes: { nome: string };
+}
+
+interface RelatorioCustomizado {
+  id?: string;
+  nome: string;
+  tipo: string;
+  colunas: string[];
+  filtros: any;
 }
 
 export default function RelatoriosView() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'catalogo' | 'vendas' | 'clientes'>('catalogo');
-
+  const [activeTab, setActiveTab] = useState<'catalogo' | 'vendas' | 'customizado'>('catalogo');
   const [itensEstoque, setItensEstoque] = useState<ItemEstoque[]>([]);
-  const [vendas, setVendas] = useState<VendaRelatorio[]>([]);
+  const [vendas, setVendas] = useState<Venda[]>([]);
+  const [relatoriosSalvos, setRelatoriosSalvos] = useState<RelatorioCustomizado[]>([]);
   const [loading, setLoading] = useState(false);
-
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
-  const [clienteFiltro, setClienteFiltro] = useState('');
+  const [nomeConsultora, setNomeConsultora] = useState('');
+
+  const [novoRelatorio, setNovoRelatorio] = useState<RelatorioCustomizado>({
+    nome: '',
+    tipo: 'vendas',
+    colunas: [],
+    filtros: {}
+  });
 
   useEffect(() => {
+    carregarNomeConsultora();
     if (activeTab === 'catalogo') {
       carregarItensEstoque();
     } else if (activeTab === 'vendas') {
       carregarVendas();
+    } else if (activeTab === 'customizado') {
+      carregarRelatoriosSalvos();
     }
   }, [activeTab]);
 
+  async function carregarNomeConsultora() {
+    const { data } = await supabase
+      .from('configuracoes_loja')
+      .select('nome_loja')
+      .eq('user_id', user?.id)
+      .maybeSingle();
+
+    if (data?.nome_loja) {
+      setNomeConsultora(data.nome_loja);
+    }
+  }
+
   async function carregarItensEstoque() {
     setLoading(true);
-    const { data: panos } = await supabase
-      .from('panos')
-      .select('id')
+    const { data } = await supabase
+      .from('itens_pano')
+      .select('*')
       .eq('user_id', user?.id)
-      .eq('status', 'ativo');
+      .gt('quantidade_disponivel', 0)
+      .order('categoria', { ascending: true });
 
-    if (panos && panos.length > 0) {
-      const panoIds = panos.map(p => p.id);
-
-      const { data: itens } = await supabase
-        .from('itens_pano')
-        .select('*')
-        .in('pano_id', panoIds)
-        .gt('quantidade_disponivel', 0)
-        .order('categoria', { ascending: true });
-
-      if (itens) {
-        setItensEstoque(itens);
-      }
+    if (data) {
+      setItensEstoque(data);
     }
     setLoading(false);
   }
@@ -69,29 +91,68 @@ export default function RelatoriosView() {
     setLoading(true);
     let query = supabase
       .from('vendas')
-      .select('*')
+      .select('*, clientes(nome)')
       .eq('user_id', user?.id)
       .order('data_venda', { ascending: false });
 
-    if (dataInicio) {
-      query = query.gte('data_venda', dataInicio);
-    }
-    if (dataFim) {
-      query = query.lte('data_venda', dataFim);
-    }
-    if (clienteFiltro) {
-      query = query.ilike('cliente_nome', `%${clienteFiltro}%`);
-    }
+    if (dataInicio) query = query.gte('data_venda', dataInicio);
+    if (dataFim) query = query.lte('data_venda', dataFim);
 
     const { data } = await query;
     if (data) {
-      setVendas(data);
+      setVendas(data as any);
     }
     setLoading(false);
   }
 
-  function imprimirCatalogo() {
-    const printWindow = window.open('', '_blank');
+  async function carregarRelatoriosSalvos() {
+    const { data } = await supabase
+      .from('relatorios_salvos')
+      .select('*')
+      .eq('user_id', user?.id)
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      setRelatoriosSalvos(data);
+    }
+  }
+
+  async function salvarRelatorio() {
+    if (!novoRelatorio.nome) {
+      alert('Digite um nome para o relatório');
+      return;
+    }
+
+    const { error } = await supabase
+      .from('relatorios_salvos')
+      .insert([{
+        user_id: user?.id,
+        nome: novoRelatorio.nome,
+        tipo: novoRelatorio.tipo,
+        filtros: novoRelatorio.filtros,
+        configuracoes: { colunas: novoRelatorio.colunas }
+      }]);
+
+    if (!error) {
+      alert('Relatório salvo com sucesso!');
+      setNovoRelatorio({ nome: '', tipo: 'vendas', colunas: [], filtros: {} });
+      carregarRelatoriosSalvos();
+    }
+  }
+
+  async function excluirRelatorio(id: string) {
+    if (!confirm('Deseja excluir este relatório?')) return;
+
+    await supabase
+      .from('relatorios_salvos')
+      .delete()
+      .eq('id', id);
+
+    carregarRelatoriosSalvos();
+  }
+
+  function gerarCatalogoPDF() {
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
     if (!printWindow) return;
 
     const categorias = [...new Set(itensEstoque.map(item => item.categoria))].sort();
@@ -100,164 +161,164 @@ export default function RelatoriosView() {
       <!DOCTYPE html>
       <html>
         <head>
-          <meta charset="UTF-8">
-          <title>Catálogo de Produtos</title>
+          <title>Catálogo - ${nomeConsultora || 'SPHERE'}</title>
           <style>
             * {
               margin: 0;
               padding: 0;
               box-sizing: border-box;
             }
-
             body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-              padding: 40px;
+              font-family: 'Arial', sans-serif;
+              background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+              padding: 20px;
+            }
+            .catalogo {
+              max-width: 1200px;
+              margin: 0 auto;
               background: white;
+              border-radius: 20px;
+              overflow: hidden;
+              box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             }
-
             .header {
+              background: linear-gradient(135deg, #D4AF37 0%, #F59E0B 100%);
+              color: white;
+              padding: 40px;
               text-align: center;
-              margin-bottom: 40px;
-              padding-bottom: 20px;
-              border-bottom: 3px solid #333;
             }
-
             .header h1 {
-              font-size: 32px;
-              color: #333;
-              margin-bottom: 8px;
-              font-weight: 700;
+              font-size: 48px;
+              margin-bottom: 10px;
+              text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
             }
-
             .header p {
               font-size: 18px;
-              color: #666;
-              font-weight: 300;
+              opacity: 0.9;
             }
-
-            .categoria-section {
-              margin-bottom: 40px;
-              page-break-inside: avoid;
+            .categoria {
+              padding: 30px;
+              border-bottom: 2px solid #f0f0f0;
             }
-
-            .categoria-titulo {
-              font-size: 24px;
-              color: #333;
+            .categoria:last-child {
+              border-bottom: none;
+            }
+            .categoria h2 {
+              color: #D4AF37;
+              font-size: 32px;
               margin-bottom: 20px;
               padding-bottom: 10px;
-              border-bottom: 2px solid #e5e7eb;
-              font-weight: 600;
+              border-bottom: 3px solid #D4AF37;
             }
-
-            .produtos-grid {
+            .produtos {
               display: grid;
-              grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+              grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
               gap: 20px;
-              margin-bottom: 30px;
             }
-
-            .produto-card {
-              border: 1px solid #e5e7eb;
-              border-radius: 12px;
-              padding: 16px;
-              text-align: center;
-              page-break-inside: avoid;
+            .produto {
+              border: 2px solid #e0e0e0;
+              border-radius: 15px;
+              overflow: hidden;
+              transition: transform 0.3s;
               background: white;
             }
-
-            .produto-foto {
-              width: 100%;
-              height: 150px;
-              object-fit: cover;
-              border-radius: 8px;
-              margin-bottom: 12px;
-              background: #f3f4f6;
+            .produto:hover {
+              transform: translateY(-5px);
+              box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             }
-
-            .produto-foto-placeholder {
+            .produto-img {
               width: 100%;
-              height: 150px;
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              border-radius: 8px;
+              height: 200px;
+              background: linear-gradient(135deg, #D4AF37 0%, #F59E0B 100%);
               display: flex;
               align-items: center;
               justify-content: center;
               color: white;
-              font-size: 48px;
-              margin-bottom: 12px;
+              font-size: 64px;
             }
-
+            .produto-img img {
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+            }
+            .produto-info {
+              padding: 15px;
+            }
             .produto-nome {
+              font-weight: bold;
               font-size: 16px;
-              font-weight: 600;
               color: #333;
               margin-bottom: 8px;
+              min-height: 40px;
             }
-
             .produto-preco {
-              font-size: 20px;
-              font-weight: 700;
-              color: #10b981;
-              margin-bottom: 4px;
+              color: #D4AF37;
+              font-size: 24px;
+              font-weight: bold;
             }
-
-            .produto-qtd {
-              font-size: 14px;
-              color: #6b7280;
+            .produto-estoque {
+              color: #666;
+              font-size: 12px;
+              margin-top: 5px;
             }
-
             .footer {
-              margin-top: 60px;
+              background: #2c3e50;
+              color: white;
+              padding: 30px;
               text-align: center;
-              padding-top: 20px;
-              border-top: 2px solid #e5e7eb;
-              color: #6b7280;
-              font-size: 14px;
             }
-
+            .footer p {
+              margin: 5px 0;
+            }
             @media print {
               body {
-                padding: 20px;
+                background: white;
+                padding: 0;
               }
-
-              .categoria-section {
-                page-break-inside: avoid;
+              .catalogo {
+                box-shadow: none;
+              }
+              .produto:hover {
+                transform: none;
               }
             }
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1>💎 Semi-Joias</h1>
-            <p>Catálogo de Produtos</p>
-          </div>
-
-          ${categorias.map(categoria => {
-            const produtosDaCategoria = itensEstoque.filter(item => item.categoria === categoria);
-
-            return `
-              <div class="categoria-section">
-                <h2 class="categoria-titulo">${categoria}</h2>
-                <div class="produtos-grid">
-                  ${produtosDaCategoria.map(produto => `
-                    <div class="produto-card">
-                      ${produto.foto_url ?
-                        `<img src="${produto.foto_url}" alt="${produto.descricao}" class="produto-foto">` :
-                        `<div class="produto-foto-placeholder">💎</div>`
-                      }
-                      <div class="produto-nome">${produto.descricao}</div>
-                      <div class="produto-preco">R$ ${produto.valor_unitario.toFixed(2)}</div>
-                      <div class="produto-qtd">${produto.quantidade_disponivel} disponível${produto.quantidade_disponivel > 1 ? 'is' : ''}</div>
-                    </div>
-                  `).join('')}
+          <div class="catalogo">
+            <div class="header">
+              <h1>✨ ${nomeConsultora || 'SPHERE'} ✨</h1>
+              <p>Catálogo de Produtos - ${new Date().toLocaleDateString('pt-BR')}</p>
+            </div>
+            ${categorias.map(categoria => {
+              const produtosCategoria = itensEstoque.filter(item => item.categoria === categoria);
+              return `
+                <div class="categoria">
+                  <h2>${categoria || 'Sem Categoria'}</h2>
+                  <div class="produtos">
+                    ${produtosCategoria.map(produto => `
+                      <div class="produto">
+                        <div class="produto-img">
+                          ${produto.foto_url
+                            ? `<img src="${produto.foto_url}" alt="${produto.descricao}" />`
+                            : '💎'
+                          }
+                        </div>
+                        <div class="produto-info">
+                          <div class="produto-nome">${produto.descricao}</div>
+                          <div class="produto-preco">R$ ${produto.valor_unitario.toFixed(2)}</div>
+                          <div class="produto-estoque">Disponível: ${produto.quantidade_disponivel}</div>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
                 </div>
-              </div>
-            `;
-          }).join('')}
-
-          <div class="footer">
-            <p>Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}</p>
-            <p style="margin-top: 8px;">Semi-Joias - Sistema de Gestão</p>
+              `;
+            }).join('')}
+            <div class="footer">
+              <p><strong>Entre em contato para fazer seu pedido!</strong></p>
+              <p>© ${new Date().getFullYear()} ${nomeConsultora || 'SPHERE'} - Todos os direitos reservados</p>
+            </div>
           </div>
         </body>
       </html>
@@ -265,180 +326,282 @@ export default function RelatoriosView() {
 
     printWindow.document.write(html);
     printWindow.document.close();
-
-    printWindow.onload = () => {
-      setTimeout(() => {
-        printWindow.print();
-      }, 250);
-    };
   }
 
-  function exportarVendasCSV() {
-    const headers = ['Data', 'Cliente', 'Valor Total', 'Status'];
-    const rows = vendas.map(v => [
-      new Date(v.data_venda).toLocaleDateString('pt-BR'),
-      v.cliente_nome,
-      `R$ ${v.valor_total.toFixed(2)}`,
-      v.status_pagamento
-    ]);
+  function exportarVendasExcel() {
+    const csv = [
+      ['Data', 'Cliente', 'Valor Total', 'Status Pagamento'],
+      ...vendas.map(v => [
+        new Date(v.data_venda).toLocaleDateString('pt-BR'),
+        v.clientes.nome,
+        v.valor_total.toFixed(2),
+        v.status_pagamento
+      ])
+    ].map(row => row.join(',')).join('\n');
 
-    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `vendas_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
   }
 
-  const totalVendas = vendas.reduce((sum, v) => sum + v.valor_total, 0);
-  const ticketMedio = vendas.length > 0 ? totalVendas / vendas.length : 0;
-  const totalProdutosCatalogo = itensEstoque.reduce((sum, item) => sum + item.quantidade_disponivel, 0);
+  function exportarVendasPDF() {
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) return;
+
+    const totalVendas = vendas.reduce((sum, v) => sum + v.valor_total, 0);
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Relatório de Vendas - ${nomeConsultora || 'SPHERE'}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 40px;
+              color: #333;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              padding-bottom: 20px;
+              border-bottom: 3px solid #D4AF37;
+            }
+            .header h1 {
+              color: #D4AF37;
+              margin-bottom: 10px;
+            }
+            .info {
+              background: #f5f5f5;
+              padding: 15px;
+              border-radius: 8px;
+              margin-bottom: 20px;
+            }
+            .info p {
+              margin: 5px 0;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+            }
+            th, td {
+              padding: 12px;
+              text-align: left;
+              border-bottom: 1px solid #ddd;
+            }
+            th {
+              background: #D4AF37;
+              color: white;
+              font-weight: bold;
+            }
+            tr:hover {
+              background: #f5f5f5;
+            }
+            .total {
+              margin-top: 20px;
+              text-align: right;
+              font-size: 20px;
+              font-weight: bold;
+              color: #D4AF37;
+            }
+            .footer {
+              margin-top: 40px;
+              text-align: center;
+              color: #666;
+              font-size: 12px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${nomeConsultora || 'SPHERE'}</h1>
+            <h2>Relatório de Vendas</h2>
+          </div>
+
+          <div class="info">
+            <p><strong>Período:</strong> ${dataInicio ? new Date(dataInicio).toLocaleDateString('pt-BR') : 'Início'} até ${dataFim ? new Date(dataFim).toLocaleDateString('pt-BR') : 'Hoje'}</p>
+            <p><strong>Total de Vendas:</strong> ${vendas.length}</p>
+            <p><strong>Gerado em:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Cliente</th>
+                <th>Valor</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${vendas.map(v => `
+                <tr>
+                  <td>${new Date(v.data_venda).toLocaleDateString('pt-BR')}</td>
+                  <td>${v.clientes.nome}</td>
+                  <td>R$ ${v.valor_total.toFixed(2)}</td>
+                  <td>${v.status_pagamento}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="total">
+            Total: R$ ${totalVendas.toFixed(2)}
+          </div>
+
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} ${nomeConsultora || 'SPHERE'} - Relatório gerado automaticamente</p>
+          </div>
+
+          <script>
+            window.print();
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+  }
+
+  const colunasDisponiveis = {
+    vendas: [
+      { id: 'data_venda', nome: 'Data' },
+      { id: 'cliente', nome: 'Cliente' },
+      { id: 'valor_total', nome: 'Valor Total' },
+      { id: 'status_pagamento', nome: 'Status Pagamento' },
+      { id: 'forma_pagamento', nome: 'Forma Pagamento' }
+    ],
+    clientes: [
+      { id: 'nome', nome: 'Nome' },
+      { id: 'telefone', nome: 'Telefone' },
+      { id: 'email', nome: 'Email' },
+      { id: 'total_compras', nome: 'Total de Compras' },
+      { id: 'valor_total', nome: 'Valor Total Gasto' }
+    ]
+  };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl">
-            <FileText className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Relatórios</h2>
-            <p className="text-sm text-gray-600">Catálogos, vendas e análises</p>
-          </div>
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-charcoal mb-2">Relatórios</h1>
+          <p className="text-gray-600">Visualize e exporte seus dados</p>
         </div>
       </div>
 
-      <div className="flex gap-2 border-b border-gray-200">
+      <div className="flex gap-3 border-b border-line">
         <button
           onClick={() => setActiveTab('catalogo')}
-          className={`px-6 py-3 font-medium transition-all ${
+          className={`px-6 py-3 font-medium transition-colors ${
             activeTab === 'catalogo'
-              ? 'text-violet-600 border-b-2 border-violet-600'
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'text-gold-ak border-b-2 border-gold-ak'
+              : 'text-gray-500 hover:text-charcoal'
           }`}
         >
-          <Package className="w-4 h-4 inline mr-2" />
+          <BookOpen className="inline w-5 h-5 mr-2" />
           Catálogo
         </button>
         <button
           onClick={() => setActiveTab('vendas')}
-          className={`px-6 py-3 font-medium transition-all ${
+          className={`px-6 py-3 font-medium transition-colors ${
             activeTab === 'vendas'
-              ? 'text-violet-600 border-b-2 border-violet-600'
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'text-gold-ak border-b-2 border-gold-ak'
+              : 'text-gray-500 hover:text-charcoal'
           }`}
         >
-          <TrendingUp className="w-4 h-4 inline mr-2" />
+          <BarChart3 className="inline w-5 h-5 mr-2" />
           Vendas
         </button>
         <button
-          onClick={() => setActiveTab('clientes')}
-          className={`px-6 py-3 font-medium transition-all ${
-            activeTab === 'clientes'
-              ? 'text-violet-600 border-b-2 border-violet-600'
-              : 'text-gray-500 hover:text-gray-700'
+          onClick={() => setActiveTab('customizado')}
+          className={`px-6 py-3 font-medium transition-colors ${
+            activeTab === 'customizado'
+              ? 'text-gold-ak border-b-2 border-gold-ak'
+              : 'text-gray-500 hover:text-charcoal'
           }`}
         >
-          <Users className="w-4 h-4 inline mr-2" />
-          Clientes
+          <Settings className="inline w-5 h-5 mr-2" />
+          Customizado
         </button>
       </div>
 
       {activeTab === 'catalogo' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total de Produtos</p>
-                  <p className="text-3xl font-bold text-gray-900">{itensEstoque.length}</p>
-                </div>
-                <Package className="w-12 h-12 text-violet-500 opacity-50" />
-              </div>
-            </div>
-            <div className="card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Em Estoque</p>
-                  <p className="text-3xl font-bold text-gray-900">{totalProdutosCatalogo}</p>
-                </div>
-                <TrendingUp className="w-12 h-12 text-green-500 opacity-50" />
-              </div>
-            </div>
-            <div className="card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Categorias</p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {new Set(itensEstoque.map(i => i.categoria)).size}
-                  </p>
-                </div>
-                <FileText className="w-12 h-12 text-blue-500 opacity-50" />
-              </div>
-            </div>
+          <div className="bg-gradient-to-r from-gold-ak to-amber-warning rounded-xl p-6 text-white">
+            <h2 className="text-2xl font-bold mb-2">Catálogo de Produtos</h2>
+            <p className="opacity-90">Gere um catálogo visual para enviar aos seus clientes</p>
           </div>
 
-          <div className="card">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Pré-visualização do Catálogo</h3>
-              <button onClick={imprimirCatalogo} className="btn-primary">
-                <Printer className="w-4 h-4 mr-2" />
-                Imprimir Catálogo
-              </button>
-            </div>
+          <div className="flex gap-3">
+            <button
+              onClick={gerarCatalogoPDF}
+              disabled={loading || itensEstoque.length === 0}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-ak to-amber-warning hover:from-amber-warning hover:to-gold-ak text-white rounded-lg font-bold transition-all shadow-lg disabled:opacity-50"
+            >
+              <Printer className="w-5 h-5" />
+              Gerar Catálogo (PDF)
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-2 px-6 py-3 border-2 border-line hover:border-gold-ak rounded-lg font-medium transition-colors"
+            >
+              <Eye className="w-5 h-5" />
+              Visualizar
+            </button>
+          </div>
 
-            {loading ? (
-              <div className="text-center py-12">
-                <div className="animate-spin w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full mx-auto"></div>
-              </div>
-            ) : itensEstoque.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <Package className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p>Nenhum produto em estoque</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {[...new Set(itensEstoque.map(item => item.categoria))].sort().map(categoria => (
-                  <div key={categoria} className="space-y-3">
-                    <h4 className="text-lg font-semibold text-gray-900 border-b pb-2">{categoria}</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                      {itensEstoque
-                        .filter(item => item.categoria === categoria)
-                        .map(item => (
-                          <div key={item.id} className="border border-gray-200 rounded-lg p-3 text-center hover:shadow-md transition-shadow">
-                            {item.foto_url ? (
-                              <img src={item.foto_url} alt={item.descricao} className="w-full h-32 object-cover rounded-lg mb-2" />
-                            ) : (
-                              <div className="w-full h-32 bg-gradient-to-br from-violet-400 to-violet-600 rounded-lg mb-2 flex items-center justify-center text-white text-4xl">
-                                💎
-                              </div>
-                            )}
-                            <p className="font-medium text-sm text-gray-900 mb-1 line-clamp-2">{item.descricao}</p>
-                            <p className="text-lg font-bold text-green-600">R$ {item.valor_unitario.toFixed(2)}</p>
-                            <p className="text-xs text-gray-500">{item.quantidade_disponivel} disponível</p>
-                          </div>
-                        ))}
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gold-ak"></div>
+              <p className="mt-4 text-gray-600">Carregando produtos...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {itensEstoque.map(item => (
+                <div key={item.id} className="bg-white border-2 border-line rounded-xl overflow-hidden hover:border-gold-ak transition-all">
+                  <div className="h-40 bg-gradient-to-br from-gold-ak to-amber-warning flex items-center justify-center">
+                    {item.foto_url ? (
+                      <img src={item.foto_url} alt={item.descricao} className="w-full h-full object-cover" />
+                    ) : (
+                      <Package className="w-16 h-16 text-white opacity-50" />
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <p className="text-xs text-gray-500 mb-1">{item.categoria}</p>
+                    <h3 className="font-bold text-charcoal mb-2 line-clamp-2">{item.descricao}</h3>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xl font-bold text-gold-ak">R$ {item.valor_unitario.toFixed(2)}</span>
+                      <span className="text-xs text-gray-500">Estoque: {item.quantidade_disponivel}</span>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {activeTab === 'vendas' && (
         <div className="space-y-6">
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Filtros</h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-6 text-white">
+            <h2 className="text-2xl font-bold mb-2">Relatório de Vendas</h2>
+            <p className="opacity-90">Exporte suas vendas em PDF ou Excel</p>
+          </div>
+
+          <div className="bg-white rounded-xl border-2 border-line p-6">
+            <h3 className="font-bold text-charcoal mb-4">Filtros</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Data Início</label>
                 <input
                   type="date"
                   value={dataInicio}
                   onChange={(e) => setDataInicio(e.target.value)}
-                  className="input-field"
+                  className="w-full px-3 py-2 border-2 border-line rounded-lg"
                 />
               </div>
               <div>
@@ -447,103 +610,173 @@ export default function RelatoriosView() {
                   type="date"
                   value={dataFim}
                   onChange={(e) => setDataFim(e.target.value)}
-                  className="input-field"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
-                <input
-                  type="text"
-                  value={clienteFiltro}
-                  onChange={(e) => setClienteFiltro(e.target.value)}
-                  placeholder="Nome do cliente..."
-                  className="input-field"
+                  className="w-full px-3 py-2 border-2 border-line rounded-lg"
                 />
               </div>
               <div className="flex items-end">
-                <button onClick={carregarVendas} className="btn-primary w-full">
-                  <TrendingUp className="w-4 h-4 mr-2" />
+                <button
+                  onClick={carregarVendas}
+                  className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+                >
                   Aplicar Filtros
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="card bg-gradient-to-br from-green-50 to-green-100">
-              <p className="text-sm text-green-700 font-medium mb-1">Total em Vendas</p>
-              <p className="text-3xl font-bold text-green-900">R$ {totalVendas.toFixed(2)}</p>
-            </div>
-            <div className="card bg-gradient-to-br from-blue-50 to-blue-100">
-              <p className="text-sm text-blue-700 font-medium mb-1">Ticket Médio</p>
-              <p className="text-3xl font-bold text-blue-900">R$ {ticketMedio.toFixed(2)}</p>
-            </div>
-            <div className="card bg-gradient-to-br from-violet-50 to-violet-100">
-              <p className="text-sm text-violet-700 font-medium mb-1">Total de Vendas</p>
-              <p className="text-3xl font-bold text-violet-900">{vendas.length}</p>
-            </div>
+          <div className="flex gap-3">
+            <button
+              onClick={exportarVendasPDF}
+              disabled={vendas.length === 0}
+              className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-all disabled:opacity-50"
+            >
+              <FileText className="w-5 h-5" />
+              Exportar PDF
+            </button>
+            <button
+              onClick={exportarVendasExcel}
+              disabled={vendas.length === 0}
+              className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold transition-all disabled:opacity-50"
+            >
+              <Download className="w-5 h-5" />
+              Exportar Excel (CSV)
+            </button>
           </div>
 
-          <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Relatório de Vendas</h3>
-              <button onClick={exportarVendasCSV} className="btn-secondary">
-                <Download className="w-4 h-4 mr-2" />
-                Exportar CSV
-              </button>
-            </div>
-
-            {vendas.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <TrendingUp className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p>Nenhuma venda encontrada</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b-2 border-gray-200">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Data</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Cliente</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Valor</th>
-                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase">Status</th>
+          <div className="bg-white rounded-xl border-2 border-line overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b-2 border-line">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Data</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Cliente</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Valor</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {vendas.map(venda => (
+                    <tr key={venda.id} className="border-b border-line hover:bg-gray-50">
+                      <td className="px-6 py-4">{new Date(venda.data_venda).toLocaleDateString('pt-BR')}</td>
+                      <td className="px-6 py-4">{venda.clientes.nome}</td>
+                      <td className="px-6 py-4 font-bold text-gold-ak">R$ {venda.valor_total.toFixed(2)}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          venda.status_pagamento === 'pago' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {venda.status_pagamento}
+                        </span>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {vendas.map((venda) => (
-                      <tr key={venda.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {new Date(venda.data_venda).toLocaleDateString('pt-BR')}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{venda.cliente_nome}</td>
-                        <td className="px-4 py-3 text-sm font-medium text-right text-gray-900">
-                          R$ {venda.valor_total.toFixed(2)}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            venda.status_pagamento === 'pago'
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-yellow-100 text-yellow-700'
-                          }`}>
-                            {venda.status_pagamento}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
 
-      {activeTab === 'clientes' && (
-        <div className="card">
-          <div className="text-center py-12 text-gray-500">
-            <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium mb-2">Relatório de Clientes</p>
-            <p className="text-sm">Em breve: ranking de clientes, histórico de compras e mais!</p>
+      {activeTab === 'customizado' && (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-6 text-white">
+            <h2 className="text-2xl font-bold mb-2">Relatórios Customizados</h2>
+            <p className="opacity-90">Crie seus próprios relatórios personalizados</p>
+          </div>
+
+          <div className="bg-white rounded-xl border-2 border-line p-6">
+            <h3 className="font-bold text-charcoal mb-4 flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              Criar Novo Relatório
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Relatório</label>
+                <input
+                  type="text"
+                  value={novoRelatorio.nome}
+                  onChange={(e) => setNovoRelatorio({...novoRelatorio, nome: e.target.value})}
+                  placeholder="Ex: Vendas do Mês"
+                  className="w-full px-3 py-2 border-2 border-line rounded-lg"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Dados</label>
+                <select
+                  value={novoRelatorio.tipo}
+                  onChange={(e) => setNovoRelatorio({...novoRelatorio, tipo: e.target.value, colunas: []})}
+                  className="w-full px-3 py-2 border-2 border-line rounded-lg"
+                >
+                  <option value="vendas">Vendas</option>
+                  <option value="clientes">Clientes</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Colunas a Exibir</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {colunasDisponiveis[novoRelatorio.tipo as keyof typeof colunasDisponiveis]?.map(coluna => (
+                    <label key={coluna.id} className="flex items-center gap-2 p-3 border-2 border-line rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={novoRelatorio.colunas.includes(coluna.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setNovoRelatorio({...novoRelatorio, colunas: [...novoRelatorio.colunas, coluna.id]});
+                          } else {
+                            setNovoRelatorio({...novoRelatorio, colunas: novoRelatorio.colunas.filter(c => c !== coluna.id)});
+                          }
+                        }}
+                        className="w-4 h-4 text-gold-ak"
+                      />
+                      <span className="text-sm">{coluna.nome}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={salvarRelatorio}
+                disabled={!novoRelatorio.nome || novoRelatorio.colunas.length === 0}
+                className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-pink-600 hover:to-purple-600 text-white rounded-lg font-bold transition-all disabled:opacity-50"
+              >
+                Salvar Relatório
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="font-bold text-charcoal">Relatórios Salvos</h3>
+            {relatoriosSalvos.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-xl border-2 border-line">
+                <PieChart className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500">Nenhum relatório salvo ainda</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {relatoriosSalvos.map(relatorio => (
+                  <div key={relatorio.id} className="bg-white border-2 border-line rounded-xl p-4 hover:border-gold-ak transition-all">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h4 className="font-bold text-charcoal">{relatorio.nome}</h4>
+                        <p className="text-sm text-gray-500 capitalize">{relatorio.tipo}</p>
+                      </div>
+                      <button
+                        onClick={() => excluirRelatorio(relatorio.id!)}
+                        className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="flex-1 px-4 py-2 bg-gold-ak hover:bg-amber-warning text-white rounded-lg text-sm font-medium transition-colors">
+                        Executar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
