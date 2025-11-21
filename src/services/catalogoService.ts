@@ -72,33 +72,49 @@ export class CatalogoService {
     const addCoverPage = async () => {
       CatalogoService.drawMarbleTexture(doc, 0, 0, pageWidth, pageHeight);
 
-      const centerY = pageHeight / 2 - 40;
+      const centerX = pageWidth / 2;
+      const centerY = pageHeight / 2 - 20;
+
+      const logoSize = 45;
+      const circleRadius = logoSize / 2 + 5;
+
+      doc.setFillColor(...CatalogoService.COLORS.offWhite);
+      doc.circle(centerX, centerY - 30, circleRadius, 'F');
+
+      doc.setDrawColor(...CatalogoService.COLORS.goldNoble);
+      doc.setLineWidth(3);
+      doc.circle(centerX, centerY - 30, circleRadius, 'S');
+
+      doc.setDrawColor(...CatalogoService.COLORS.goldNoble);
+      doc.setLineWidth(1);
+      doc.circle(centerX, centerY - 30, circleRadius - 2, 'S');
 
       try {
         const logoPath = '/esfera logo.png';
         const logoImg = await CatalogoService.loadImage(logoPath);
-        const logoSize = 50;
-        const logoX = (pageWidth - logoSize) / 2;
-        doc.addImage(logoImg, 'PNG', logoX, centerY, logoSize, logoSize, undefined, 'FAST');
+        const logoX = centerX - logoSize / 2;
+        const logoY = centerY - 30 - logoSize / 2;
+        doc.addImage(logoImg, 'PNG', logoX, logoY, logoSize, logoSize, undefined, 'FAST');
       } catch (error) {
         console.log('Logo não carregada');
       }
 
       doc.setFillColor(...CatalogoService.COLORS.goldNoble);
-      doc.rect((pageWidth - 80) / 2, centerY + 60, 80, 1.5, 'F');
+      const lineWidth = 80;
+      doc.rect(centerX - lineWidth / 2, centerY + 25, lineWidth, 1.5, 'F');
 
       doc.setTextColor(...CatalogoService.COLORS.black);
-      doc.setFontSize(56);
+      doc.setFontSize(52);
       doc.setFont('helvetica', 'bold');
-      doc.text(nomeConsultora.toUpperCase(), pageWidth / 2, centerY + 80, {
+      doc.text(nomeConsultora.toUpperCase(), centerX, centerY + 45, {
         align: 'center',
-        charSpace: 8
+        charSpace: 10
       });
 
       doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...CatalogoService.COLORS.textMedium);
-      doc.text('CATÁLOGO PREMIUM', pageWidth / 2, centerY + 92, {
+      doc.text('CATÁLOGO PREMIUM', centerX, centerY + 58, {
         align: 'center',
         charSpace: 6
       });
@@ -109,7 +125,7 @@ export class CatalogoService {
       });
       doc.setFontSize(9);
       doc.setTextColor(...CatalogoService.COLORS.textLight);
-      doc.text(dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1), pageWidth / 2, pageHeight - 30, {
+      doc.text(dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1), centerX, pageHeight - 30, {
         align: 'center',
         charSpace: 3
       });
@@ -117,7 +133,7 @@ export class CatalogoService {
       doc.setFontSize(8);
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(...CatalogoService.COLORS.goldNoble);
-      doc.text('by Magold Ana Kelly', pageWidth / 2, pageHeight - 20, { align: 'center' });
+      doc.text('by Magold Ana Kelly', centerX, pageHeight - 20, { align: 'center' });
     };
 
     const addHeader = (pageNum: number) => {
