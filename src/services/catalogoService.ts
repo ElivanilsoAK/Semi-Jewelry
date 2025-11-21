@@ -127,20 +127,20 @@ export class CatalogoService {
 
       const titleY = lineY + 25;
       doc.setTextColor(...CatalogoService.COLORS.black);
-      doc.setFontSize(52);
+      doc.setFontSize(46);
       doc.setFont('helvetica', 'bold');
       doc.text('SPHERE', centerX, titleY, {
         align: 'center',
-        charSpace: 12
+        charSpace: 6
       });
 
-      const subtitleY = titleY + 13;
-      doc.setFontSize(9.5);
+      const subtitleY = titleY + 12;
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...CatalogoService.COLORS.textMedium);
       doc.text('C A T Á L O G O   P R E M I U M', centerX, subtitleY, {
         align: 'center',
-        charSpace: 4.5
+        charSpace: 2.5
       });
 
       const dataFormatada = new Date().toLocaleDateString('pt-BR', {
