@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase, Pano, ItemPano, withUserId } from '../../lib/supabase';
 import { X, Package, ChevronDown, ChevronUp, Plus, Trash2, Edit2, Image as ImageIcon } from 'lucide-react';
+import ImageUpload from '../ImageUpload';
 
 interface ItensModalProps {
   pano: Pano;
@@ -28,6 +29,7 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
     descricao: '',
     quantidade_inicial: 1,
     valor_unitario: 0,
+    foto_url: null as string | null,
   });
 
   useEffect(() => {
@@ -102,6 +104,7 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
             categoria: formData.categoria,
             descricao: formData.descricao,
             valor_unitario: formData.valor_unitario,
+            foto_url: formData.foto_url,
           })
           .eq('id', editingItem.id);
 
@@ -119,6 +122,7 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
           quantidade_inicial: formData.quantidade_inicial,
           quantidade_disponivel: formData.quantidade_inicial,
           valor_unitario: formData.valor_unitario,
+          foto_url: formData.foto_url,
         });
 
         console.log('Dados para inserir:', dataWithUserId);
@@ -174,6 +178,7 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
       descricao: item.descricao,
       quantidade_inicial: item.quantidade_disponivel,
       valor_unitario: item.valor_unitario,
+      foto_url: item.foto_url || null,
     });
     setShowForm(true);
   };
@@ -186,6 +191,7 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
       descricao: '',
       quantidade_inicial: 1,
       valor_unitario: 0,
+      foto_url: null,
     });
   };
 
@@ -267,6 +273,11 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
 
           {showForm && (
             <form onSubmit={handleSubmit} className="bg-gray-50 p-4 rounded-lg space-y-4 mb-4">
+              <ImageUpload
+                currentImageUrl={formData.foto_url}
+                onImageUploaded={(url) => setFormData({ ...formData, foto_url: url })}
+                onImageRemoved={() => setFormData({ ...formData, foto_url: null })}
+              />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
