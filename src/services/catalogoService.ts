@@ -129,9 +129,8 @@ export class CatalogoService {
       doc.setTextColor(...CatalogoService.COLORS.black);
       doc.setFontSize(46);
       doc.setFont('helvetica', 'bold');
-      doc.text('SPHERE', centerX, titleY, {
-        align: 'center',
-        charSpace: 6
+      doc.text('S P H E R E', centerX, titleY, {
+        align: 'center'
       });
 
       const subtitleY = titleY + 12;
@@ -139,8 +138,7 @@ export class CatalogoService {
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...CatalogoService.COLORS.textMedium);
       doc.text('C A T Á L O G O   P R E M I U M', centerX, subtitleY, {
-        align: 'center',
-        charSpace: 2.5
+        align: 'center'
       });
 
       const dataFormatada = new Date().toLocaleDateString('pt-BR', {
