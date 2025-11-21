@@ -23,7 +23,7 @@ interface LucratividadePano {
   quantidade_vendida: number;
   percentual_vendido: number;
   comissao_gerada: number;
-  lucro_liquido: number;
+  prestacao_contas: number;
 }
 
 type FilterStatus = 'todos' | 'ativo' | 'devolvido' | 'encerrado';
@@ -451,7 +451,7 @@ export default function PanosView() {
 
                   {showLucratividade === pano.id && lucro && (
                     <div className="bg-gradient-to-br from-gold-ak/10 to-amber-warning/10 border border-gold-ak/30 rounded-lg p-3 mb-4">
-                      <h4 className="text-sm font-bold text-charcoal mb-2">📊 Lucratividade</h4>
+                      <h4 className="text-sm font-bold text-charcoal mb-2">📊 Prestação de Contas</h4>
                       <div className="space-y-1 text-xs">
                         <div className="flex justify-between">
                           <span className="text-gray-600">Vendido:</span>
@@ -464,8 +464,8 @@ export default function PanosView() {
                           <span className="font-bold text-purple-600">{formatCurrency(lucro.comissao_gerada)}</span>
                         </div>
                         <div className="flex justify-between border-t border-gold-ak/30 pt-1">
-                          <span className="text-gray-700 font-medium">Lucro:</span>
-                          <span className="font-bold text-gold-ak">{formatCurrency(lucro.lucro_liquido)}</span>
+                          <span className="text-gray-700 font-medium">Prestação (60%):</span>
+                          <span className="font-bold text-gold-ak">{formatCurrency(lucro.prestacao_contas)}</span>
                         </div>
                       </div>
                     </div>
@@ -484,7 +484,7 @@ export default function PanosView() {
                       className="flex items-center justify-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium"
                     >
                       <TrendingUp className="w-4 h-4" />
-                      Lucro
+                      Prestação
                     </button>
                     <button
                       onClick={() => handleEditPano(pano)}
