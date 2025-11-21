@@ -173,15 +173,17 @@ export class CatalogoService {
       doc.setTextColor(...CatalogoService.COLORS.black);
       doc.setFontSize(20);
       doc.setFont('helvetica', 'bold');
-      doc.text(nomeConsultora.toUpperCase(), pageWidth / 2, 18, {
-        align: 'center',
-        charSpace: 4
+      const nomeComEspacos = nomeConsultora.toUpperCase().split('').join(' ');
+      doc.text(nomeComEspacos, pageWidth / 2, 18, {
+        align: 'center'
       });
 
       doc.setFontSize(7);
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(...CatalogoService.COLORS.goldNoble);
-      doc.text('by Magold Ana Kelly', pageWidth / 2, 26, { align: 'center' });
+      doc.text('by Magold Ana Kelly', pageWidth / 2, 26, {
+        align: 'center'
+      });
     };
 
     const addFooter = (pageNum: number, totalPages: number) => {
