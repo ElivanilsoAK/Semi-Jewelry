@@ -47,14 +47,14 @@ export class CatalogoService {
 
   private static drawPattern(doc: jsPDF, x: number, y: number, width: number, height: number, type: 'dots' | 'lines' | 'gradient') {
     if (type === 'dots') {
-      doc.setFillColor(...this.COLORS.accentLight);
+      doc.setFillColor(...CatalogoService.COLORS.accentLight);
       for (let i = 0; i < width; i += 8) {
         for (let j = 0; j < height; j += 8) {
           doc.circle(x + i, y + j, 0.3, 'F');
         }
       }
     } else if (type === 'lines') {
-      doc.setDrawColor(...this.COLORS.accentLight);
+      doc.setDrawColor(...CatalogoService.COLORS.accentLight);
       doc.setLineWidth(0.2);
       for (let i = 0; i < height; i += 4) {
         doc.line(x, y + i, x + width, y + i);
@@ -73,18 +73,18 @@ export class CatalogoService {
     const contentWidth = pageWidth - (margin * 2);
 
     const addHeader = async (isFirstPage: boolean = false) => {
-      doc.setFillColor(...this.COLORS.primary);
+      doc.setFillColor(...CatalogoService.COLORS.primary);
       doc.roundedRect(0, 0, pageWidth, isFirstPage ? 75 : 45, 0, 0, 'F');
 
-      this.drawPattern(doc, 0, 0, pageWidth, isFirstPage ? 75 : 45, 'dots');
+      CatalogoService.drawPattern(doc, 0, 0, pageWidth, isFirstPage ? 75 : 45, 'dots');
 
-      doc.setFillColor(...this.COLORS.secondary);
+      doc.setFillColor(...CatalogoService.COLORS.secondary);
       doc.roundedRect(0, isFirstPage ? 70 : 40, pageWidth, 5, 0, 0, 'F');
 
       if (isFirstPage) {
         try {
           const logoPath = '/esfera logo.png';
-          const logoImg = await this.loadImage(logoPath);
+          const logoImg = await CatalogoService.loadImage(logoPath);
           const logoSize = 22;
           const logoX = (pageWidth - logoSize) / 2;
           doc.addImage(logoImg, 'PNG', logoX, 12, logoSize, logoSize, undefined, 'FAST');
@@ -92,18 +92,18 @@ export class CatalogoService {
           console.log('Logo não carregada, continuando sem ela');
         }
 
-        doc.setTextColor(...this.COLORS.dark);
+        doc.setTextColor(...CatalogoService.COLORS.dark);
         doc.setFontSize(36);
         doc.setFont('helvetica', 'bold');
         doc.text(nomeConsultora.toUpperCase(), pageWidth / 2, 45, { align: 'center' });
 
         doc.setFontSize(13);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...this.COLORS.darkGray);
+        doc.setTextColor(...CatalogoService.COLORS.darkGray);
         doc.text('CATÁLOGO DE PRODUTOS PREMIUM', pageWidth / 2, 53, { align: 'center' });
 
         doc.setFontSize(9);
-        doc.setTextColor(...this.COLORS.mediumGray);
+        doc.setTextColor(...CatalogoService.COLORS.mediumGray);
         const dataFormatada = new Date().toLocaleDateString('pt-BR', {
           day: '2-digit',
           month: 'long',
@@ -113,17 +113,17 @@ export class CatalogoService {
 
         doc.setFontSize(8);
         doc.setFont('helvetica', 'italic');
-        doc.setTextColor(...this.COLORS.primary);
+        doc.setTextColor(...CatalogoService.COLORS.primary);
         doc.text('by Magold Ana Kelly', pageWidth / 2, 66, { align: 'center' });
       } else {
-        doc.setTextColor(...this.COLORS.dark);
+        doc.setTextColor(...CatalogoService.COLORS.dark);
         doc.setFontSize(18);
         doc.setFont('helvetica', 'bold');
         doc.text(nomeConsultora.toUpperCase(), pageWidth / 2, 22, { align: 'center' });
 
         doc.setFontSize(8);
         doc.setFont('helvetica', 'italic');
-        doc.setTextColor(...this.COLORS.primary);
+        doc.setTextColor(...CatalogoService.COLORS.primary);
         doc.text('by Magold Ana Kelly', pageWidth / 2, 31, { align: 'center' });
       }
     };
@@ -131,17 +131,17 @@ export class CatalogoService {
     const addFooter = (pageNum: number) => {
       const footerY = pageHeight - 18;
 
-      doc.setDrawColor(...this.COLORS.primary);
+      doc.setDrawColor(...CatalogoService.COLORS.primary);
       doc.setLineWidth(0.8);
       doc.line(margin, footerY, pageWidth - margin, footerY);
 
-      doc.setFillColor(...this.COLORS.accent);
+      doc.setFillColor(...CatalogoService.COLORS.accent);
       doc.roundedRect(margin, footerY + 3, contentWidth, 12, 2, 2, 'F');
 
-      doc.setFillColor(...this.COLORS.primary);
+      doc.setFillColor(...CatalogoService.COLORS.primary);
       doc.circle(pageWidth / 2, footerY + 9, 1.5, 'F');
 
-      doc.setTextColor(...this.COLORS.dark);
+      doc.setTextColor(...CatalogoService.COLORS.dark);
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
       doc.text(
@@ -162,7 +162,7 @@ export class CatalogoService {
 
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...this.COLORS.primary);
+      doc.setTextColor(...CatalogoService.COLORS.primary);
       doc.text(
         `Página ${pageNum}`,
         pageWidth - margin - 5,
@@ -172,26 +172,26 @@ export class CatalogoService {
     };
 
     const drawCategoryHeader = (categoria: string, y: number) => {
-      const icon = this.CATEGORY_ICONS[categoria] || '◆';
+      const icon = CatalogoService.CATEGORY_ICONS[categoria] || '◆';
       const headerHeight = 18;
 
-      doc.setFillColor(...this.COLORS.primary);
+      doc.setFillColor(...CatalogoService.COLORS.primary);
       doc.roundedRect(margin, y, contentWidth, headerHeight, 4, 4, 'F');
 
-      doc.setFillColor(...this.COLORS.accent);
+      doc.setFillColor(...CatalogoService.COLORS.accent);
       doc.roundedRect(margin, y, 8, headerHeight, 4, 0, 'F');
 
-      doc.setFillColor(...this.COLORS.white);
+      doc.setFillColor(...CatalogoService.COLORS.white);
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
       doc.text(icon, margin + 4, y + 12, { align: 'center' });
 
-      doc.setTextColor(...this.COLORS.white);
+      doc.setTextColor(...CatalogoService.COLORS.white);
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.text(categoria.toUpperCase(), margin + 15, y + 12);
 
-      doc.setDrawColor(...this.COLORS.accent);
+      doc.setDrawColor(...CatalogoService.COLORS.accent);
       doc.setLineWidth(2);
       doc.line(margin, y + headerHeight, margin + contentWidth, y + headerHeight);
     };
@@ -201,16 +201,16 @@ export class CatalogoService {
       const badgeHeight = 6;
 
       if (quantidade <= 3) {
-        doc.setFillColor(...this.COLORS.warning);
+        doc.setFillColor(...CatalogoService.COLORS.warning);
       } else {
-        doc.setFillColor(...this.COLORS.success);
+        doc.setFillColor(...CatalogoService.COLORS.success);
       }
 
       doc.roundedRect(x, y, badgeWidth, badgeHeight, 2, 2, 'F');
 
       doc.setFontSize(6);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...this.COLORS.white);
+      doc.setTextColor(...CatalogoService.COLORS.white);
       doc.text(
         `✓ ${quantidade} disponível${quantidade !== 1 ? 'eis' : ''}`,
         x + badgeWidth / 2,
@@ -227,12 +227,12 @@ export class CatalogoService {
       cardHeight: number,
       isAlternate: boolean
     ) => {
-      const bgColor = isAlternate ? this.COLORS.cardBgAlt : this.COLORS.cardBg;
+      const bgColor = isAlternate ? CatalogoService.COLORS.cardBgAlt : CatalogoService.COLORS.cardBg;
 
       doc.setFillColor(...bgColor);
       doc.roundedRect(x, y, cardWidth, cardHeight, 5, 5, 'F');
 
-      doc.setDrawColor(...this.COLORS.primary);
+      doc.setDrawColor(...CatalogoService.COLORS.primary);
       doc.setLineWidth(0.5);
       doc.roundedRect(x, y, cardWidth, cardHeight, 5, 5, 'S');
 
@@ -244,13 +244,13 @@ export class CatalogoService {
       doc.setFillColor(248, 248, 248);
       doc.roundedRect(imgX, imgY, imgWidth, imgHeight, 4, 4, 'F');
 
-      doc.setDrawColor(...this.COLORS.lightGray);
+      doc.setDrawColor(...CatalogoService.COLORS.lightGray);
       doc.setLineWidth(0.3);
       doc.roundedRect(imgX, imgY, imgWidth, imgHeight, 4, 4, 'S');
 
       if (produto.foto_url) {
         try {
-          await this.addImageProportional(
+          await CatalogoService.addImageProportional(
             doc,
             produto.foto_url,
             imgX,
@@ -259,20 +259,20 @@ export class CatalogoService {
             imgHeight
           );
         } catch {
-          this.drawNoImagePlaceholder(doc, imgX, imgY, imgWidth, imgHeight);
+          CatalogoService.drawNoImagePlaceholder(doc, imgX, imgY, imgWidth, imgHeight);
         }
       } else {
-        this.drawNoImagePlaceholder(doc, imgX, imgY, imgWidth, imgHeight);
+        CatalogoService.drawNoImagePlaceholder(doc, imgX, imgY, imgWidth, imgHeight);
       }
 
-      this.drawStockBadge(doc, imgX + imgWidth - 27, imgY + 2, produto.quantidade_disponivel);
+      drawStockBadge(doc, imgX + imgWidth - 27, imgY + 2, produto.quantidade_disponivel);
 
       const textY = imgY + imgHeight + 7;
       const maxDescWidth = cardWidth - 12;
 
       doc.setFontSize(9.5);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...this.COLORS.dark);
+      doc.setTextColor(...CatalogoService.COLORS.dark);
 
       const descricaoLimpa = produto.descricao.substring(0, 42);
       const lines = doc.splitTextToSize(descricaoLimpa, maxDescWidth);
@@ -286,15 +286,15 @@ export class CatalogoService {
       });
 
       const priceY = textY + 10;
-      doc.setFillColor(...this.COLORS.primary);
+      doc.setFillColor(...CatalogoService.COLORS.primary);
       doc.roundedRect(x + 8, priceY, cardWidth - 16, 14, 4, 4, 'F');
 
-      doc.setFillColor(...this.COLORS.accent);
+      doc.setFillColor(...CatalogoService.COLORS.accent);
       doc.circle(x + 15, priceY + 7, 2.5, 'F');
 
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...this.COLORS.white);
+      doc.setTextColor(...CatalogoService.COLORS.white);
       doc.text('R$', x + 22, priceY + 8.5);
 
       doc.setFontSize(14);
@@ -379,7 +379,7 @@ export class CatalogoService {
     doc.setFillColor(242, 242, 242);
     doc.roundedRect(x, y, width, height, 4, 4, 'F');
 
-    doc.setDrawColor(...this.COLORS.mediumGray);
+    doc.setDrawColor(...CatalogoService.COLORS.mediumGray);
     doc.setLineWidth(1.5);
 
     const iconSize = Math.min(width, height) * 0.28;
@@ -418,7 +418,7 @@ export class CatalogoService {
 
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...this.COLORS.mediumGray);
+    doc.setTextColor(...CatalogoService.COLORS.mediumGray);
     doc.text('SEM FOTO', centerX, centerY + iconSize * 0.5 + 6, { align: 'center' });
   }
 
@@ -507,13 +507,13 @@ export class CatalogoService {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
 
-    doc.setFillColor(...this.COLORS.primary);
+    doc.setFillColor(...CatalogoService.COLORS.primary);
     doc.rect(0, 0, pageWidth, 50, 'F');
 
-    doc.setFillColor(...this.COLORS.secondary);
+    doc.setFillColor(...CatalogoService.COLORS.secondary);
     doc.rect(0, 45, pageWidth, 5, 'F');
 
-    doc.setTextColor(...this.COLORS.white);
+    doc.setTextColor(...CatalogoService.COLORS.white);
     doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
     doc.text(nomeConsultora.toUpperCase(), pageWidth / 2, 20, { align: 'center' });
@@ -527,10 +527,10 @@ export class CatalogoService {
     doc.text('by Magold Ana Kelly', pageWidth / 2, 38, { align: 'center' });
 
     let yPosition = 60;
-    doc.setFillColor(...this.COLORS.lightGray);
+    doc.setFillColor(...CatalogoService.COLORS.lightGray);
     doc.roundedRect(15, yPosition, pageWidth - 30, 30, 3, 3, 'F');
 
-    doc.setTextColor(...this.COLORS.dark);
+    doc.setTextColor(...CatalogoService.COLORS.dark);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
 
@@ -557,10 +557,10 @@ export class CatalogoService {
     const colWidths = [30, 75, 35, 35];
     const headers = ['Data', 'Cliente', 'Valor', 'Status'];
 
-    doc.setFillColor(...this.COLORS.primary);
+    doc.setFillColor(...CatalogoService.COLORS.primary);
     doc.roundedRect(15, yPosition, pageWidth - 30, 10, 2, 2, 'F');
 
-    doc.setTextColor(...this.COLORS.white);
+    doc.setTextColor(...CatalogoService.COLORS.white);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
 
@@ -572,7 +572,7 @@ export class CatalogoService {
 
     yPosition += 10;
 
-    doc.setTextColor(...this.COLORS.dark);
+    doc.setTextColor(...CatalogoService.COLORS.dark);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
 
@@ -587,7 +587,7 @@ export class CatalogoService {
       }
 
       if (i % 2 === 0) {
-        doc.setFillColor(...this.COLORS.cardBg);
+        doc.setFillColor(...CatalogoService.COLORS.cardBg);
         doc.rect(15, yPosition, pageWidth - 30, 9, 'F');
       }
 
@@ -606,10 +606,10 @@ export class CatalogoService {
       xPos += colWidths[1];
 
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...this.COLORS.primary);
+      doc.setTextColor(...CatalogoService.COLORS.primary);
       doc.text(`R$ ${venda.valor_total.toFixed(2)}`, xPos + 3, yPosition + 6);
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...this.COLORS.dark);
+      doc.setTextColor(...CatalogoService.COLORS.dark);
       xPos += colWidths[2];
 
       const statusMap: Record<string, string> = {
@@ -628,14 +628,14 @@ export class CatalogoService {
     }
 
     yPosition += 8;
-    doc.setDrawColor(...this.COLORS.primary);
+    doc.setDrawColor(...CatalogoService.COLORS.primary);
     doc.setLineWidth(1);
     doc.line(15, yPosition, pageWidth - 15, yPosition);
 
     yPosition += 10;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.setTextColor(...this.COLORS.primary);
+    doc.setTextColor(...CatalogoService.COLORS.primary);
     doc.text(
       `TOTAL: R$ ${totalVendas.toFixed(2)}`,
       pageWidth - 20,
@@ -646,7 +646,7 @@ export class CatalogoService {
     const finalY = pageHeight - 15;
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...this.COLORS.mediumGray);
+    doc.setTextColor(...CatalogoService.COLORS.mediumGray);
     doc.text(
       `Gerado por ${nomeConsultora}`,
       pageWidth / 2,

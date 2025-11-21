@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, Venda, Cliente, ItemVenda, ItemPano, Pagamento } from '../../lib/supabase';
-import { X, CheckCircle, Printer, Download, Send } from 'lucide-react';
+import { X, CheckCircle, Printer, Download, Send, Image } from 'lucide-react';
 import { ComprovanteService } from '../../services/comprovanteService';
 
 interface VendaComCliente extends Venda {
@@ -168,6 +168,24 @@ export default function DetalhesVendaModal({ venda, onClose }: DetalhesVendaModa
     ComprovanteService.enviarWhatsApp(dados);
   };
 
+  const handleEnviarWhatsAppImagem = async () => {
+    const dados = prepararDadosComprovante();
+    if (!dados) {
+      alert('Erro ao preparar dados do comprovante');
+      return;
+    }
+    await ComprovanteService.enviarWhatsAppImagem(dados);
+  };
+
+  const handleBaixarComprovanteImagem = async () => {
+    const dados = prepararDadosComprovante();
+    if (!dados) {
+      alert('Erro ao preparar dados do comprovante');
+      return;
+    }
+    await ComprovanteService.baixarComprovanteImagem(dados);
+  };
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -205,11 +223,18 @@ export default function DetalhesVendaModal({ venda, onClose }: DetalhesVendaModa
               Baixar PDF
             </button>
             <button
-              onClick={handleEnviarWhatsApp}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-medium shadow-md"
+              onClick={handleEnviarWhatsAppImagem}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all font-medium shadow-md"
             >
-              <Send className="w-4 h-4" />
-              Enviar WhatsApp
+              <Image className="w-4 h-4" />
+              Enviar Comprovante
+            </button>
+            <button
+              onClick={handleBaixarComprovanteImagem}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all font-medium shadow-md"
+            >
+              <Download className="w-4 h-4" />
+              Baixar Imagem
             </button>
           </div>
         </div>

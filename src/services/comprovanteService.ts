@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import { ComprovanteVisualService } from './comprovanteVisualService';
 
 interface ItemComprovante {
   descricao: string;
@@ -406,6 +407,33 @@ ${nomeLoja} - Semijoias de Qualidade
     window.open(doc.output('bloburl'), '_blank');
   }
 
+  static async enviarWhatsAppImagem(dados: DadosComprovante): Promise<void> {
+    if (!dados.clienteTelefone) {
+      alert('❌ Cliente não possui telefone cadastrado para envio via WhatsApp.');
+      return;
+    }
+
+    try {
+      const dadosVisuais = {
+        nomeCliente: dados.clienteNome,
+        nomeConsultora: dados.nomeLoja || 'SPHERE',
+        dataVenda: dados.data,
+        itens: dados.itens,
+        valorTotal: dados.total,
+        statusPagamento: 'pago',
+        formaPagamento: dados.formaPagamento,
+        observacoes: dados.parcelas && dados.parcelas.length > 1
+          ? `Pagamento parcelado em ${dados.parcelas.length}x`
+          : undefined
+      };
+
+      await ComprovanteVisualService.compartilharWhatsApp(dadosVisuais);
+    } catch (error) {
+      console.error('Erro ao gerar comprovante visual:', error);
+      this.enviarWhatsApp(dados);
+    }
+  }
+
   static enviarWhatsApp(dados: DadosComprovante): void {
     if (!dados.clienteTelefone) {
       alert('❌ Cliente não possui telefone cadastrado para envio via WhatsApp.');
@@ -420,6 +448,28 @@ ${nomeLoja} - Semijoias de Qualidade
     const url = `https://wa.me/${numeroFormatado}?text=${mensagem}`;
 
     window.open(url, '_blank');
+  }
+
+  static async baixarComprovanteImagem(dados: DadosComprovante): Promise<void> {
+    try {
+      const dadosVisuais = {
+        nomeCliente: dados.clienteNome,
+        nomeConsultora: dados.nomeLoja || 'SPHERE',
+        dataVenda: dados.data,
+        itens: dados.itens,
+        valorTotal: dados.total,
+        statusPagamento: 'pago',
+        formaPagamento: dados.formaPagamento,
+        observacoes: dados.parcelas && dados.parcelas.length > 1
+          ? `Pagamento parcelado em ${dados.parcelas.length}x`
+          : undefined
+      };
+
+      await ComprovanteVisualService.baixarComprovante(dadosVisuais);
+    } catch (error) {
+      console.error('Erro ao gerar comprovante visual:', error);
+      alert('❌ Erro ao gerar comprovante. Tente novamente.');
+    }
   }
 
   static copiarParaAreaTransferencia(dados: DadosComprovante): void {
