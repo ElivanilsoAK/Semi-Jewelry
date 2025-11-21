@@ -108,18 +108,20 @@ export default function PanosView() {
   };
 
   const handleDuplicatePano = async (pano: PanoDetalhado) => {
+    if (!confirm(`Deseja duplicar o pano "${pano.nome}"?\n\nUm novo pano será criado com os mesmos itens.`)) return;
+
     try {
       const { data: newPano, error: panoError } = await supabase
         .from('panos')
         .insert({
           nome: `${pano.nome} (Cópia)`,
-          data_retirada: new Date().toISOString(),
-          data_devolucao: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          data_retirada: new Date().toISOString().split('T')[0],
+          data_devolucao: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           status: 'ativo',
           observacoes: pano.observacoes,
           cliente_id: pano.cliente_id,
           percentual_comissao: pano.percentual_comissao,
-          data_prevista_retorno: pano.data_prevista_retorno
+          fornecedor: pano.fornecedor
         })
         .select()
         .single();
@@ -151,8 +153,8 @@ export default function PanosView() {
         if (insertError) throw insertError;
       }
 
-      loadPanos();
-      alert('Pano duplicado com sucesso!');
+      await loadPanos();
+      alert(`✅ Pano "${pano.nome}" duplicado com sucesso!\n\n${itens?.length || 0} itens foram copiados.`);
     } catch (error) {
       console.error('Erro ao duplicar pano:', error);
       alert('Erro ao duplicar pano');
@@ -247,7 +249,9 @@ export default function PanosView() {
   };
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('pt-BR');
+    // Adiciona timezone para evitar problemas de UTC
+    const [year, month, day] = date.split('-');
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toLocaleDateString('pt-BR');
   };
 
   const filteredPanos = panos;

@@ -49,7 +49,7 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
         setFormData(prev => ({ ...prev, categoria: nomesCategorias[0] }));
       }
     } else {
-      const categoriasDefault = ['Pulseira', 'Corrente', 'Pingente', 'Anel', 'Brinco', 'Argola', 'Tornozeleira', 'Conjunto', 'Infantil', 'Outro'];
+      const categoriasDefault = ['Pulseiras', 'Correntes', 'Pingentes', 'Anéis', 'Brincos G', 'Brincos I', 'Brincos M', 'Argolas'];
       setCategorias(categoriasDefault);
       if (!formData.categoria) {
         setFormData(prev => ({ ...prev, categoria: categoriasDefault[0] }));
@@ -146,7 +146,7 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
     setShowForm(false);
     setEditingItem(null);
     setFormData({
-      categoria: categorias[0] || 'Pulseira',
+      categoria: categorias[0] || 'Pulseiras',
       descricao: '',
       quantidade_inicial: 1,
       valor_unitario: 0,
@@ -268,7 +268,7 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
                     step="0.01"
                     min="0"
                     value={formData.valor_unitario}
-                    onChange={(e) => setFormData({ ...formData, valor_unitario: parseFloat(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, valor_unitario: parseFloat(e.target.value) || 0 })}
                     className="input-field"
                     required
                   />
@@ -282,7 +282,7 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
                       type="number"
                       min="1"
                       value={formData.quantidade_inicial}
-                      onChange={(e) => setFormData({ ...formData, quantidade_inicial: parseInt(e.target.value) })}
+                      onChange={(e) => setFormData({ ...formData, quantidade_inicial: parseInt(e.target.value) || 1 })}
                       className="input-field"
                       required
                     />

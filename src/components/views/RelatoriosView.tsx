@@ -543,14 +543,7 @@ export default function RelatoriosView() {
               className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold-ak to-amber-warning hover:from-amber-warning hover:to-gold-ak text-white rounded-lg font-bold transition-all shadow-lg disabled:opacity-50"
             >
               <Printer className="w-5 h-5" />
-              Gerar Catálogo (PDF)
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="flex items-center gap-2 px-6 py-3 border-2 border-line hover:border-gold-ak rounded-lg font-medium transition-colors"
-            >
-              <Eye className="w-5 h-5" />
-              Visualizar
+              Gerar Catálogo
             </button>
           </div>
 

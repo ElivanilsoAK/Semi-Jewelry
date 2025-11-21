@@ -233,8 +233,24 @@ export default function ClientesView() {
                   <input
                     type="tel"
                     value={formData.telefone}
-                    onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '');
+                      let formatted = value;
+                      if (value.length > 0) {
+                        if (value.length <= 2) {
+                          formatted = `(${value}`;
+                        } else if (value.length <= 7) {
+                          formatted = `(${value.slice(0, 2)}) ${value.slice(2)}`;
+                        } else if (value.length <= 11) {
+                          formatted = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`;
+                        } else {
+                          formatted = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7, 11)}`;
+                        }
+                      }
+                      setFormData({ ...formData, telefone: formatted });
+                    }}
                     placeholder="(00) 00000-0000"
+                    maxLength={15}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   />
                 </div>
