@@ -9,6 +9,7 @@ interface Categoria {
   cor: string;
   ordem: number;
   ativo: boolean;
+  user_id: string | null;
 }
 
 interface UserRole {
@@ -199,52 +200,123 @@ export default function ConfiguracoesView() {
 
           <div className="card">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Categorias Cadastradas</h3>
+
             {categorias.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <Tag className="w-12 h-12 mx-auto mb-3 opacity-50" />
                 <p>Nenhuma categoria cadastrada</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {categorias.map((categoria) => (
-                  <div
-                    key={categoria.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-8 h-8 rounded-full"
-                        style={{ backgroundColor: categoria.cor }}
-                      />
-                      <div>
-                        <p className="font-medium text-gray-900">{categoria.nome}</p>
-                        <p className="text-sm text-gray-500">
-                          {categoria.ativo ? 'Ativa' : 'Inativa'}
-                        </p>
-                      </div>
+              <div className="space-y-4">
+                {/* Categorias do Sistema */}
+                {categorias.filter(c => c.user_id === null).length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="flex-1 h-px bg-gray-300"></div>
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Categorias do Sistema
+                      </span>
+                      <div className="flex-1 h-px bg-gray-300"></div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => toggleCategoriaAtiva(categoria.id, categoria.ativo)}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                          categoria.ativo
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                        }`}
-                      >
-                        {categoria.ativo ? 'Ativa' : 'Inativa'}
-                      </button>
-                      <button
-                        onClick={() => removerCategoria(categoria.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <div className="space-y-2">
+                      {categorias.filter(c => c.user_id === null).map((categoria) => (
+                        <div
+                          key={categoria.id}
+                          className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-8 h-8 rounded-full shadow-sm"
+                              style={{ backgroundColor: categoria.cor }}
+                            />
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-gray-900">{categoria.nome}</p>
+                                <span className="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded uppercase">
+                                  Sistema
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-600">
+                                {categoria.ativo ? '✓ Ativa' : '○ Inativa'} • Não pode ser deletada
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              disabled
+                              className="px-3 py-1 rounded-lg text-sm font-medium bg-gray-100 text-gray-400 cursor-not-allowed"
+                              title="Categorias do sistema não podem ser alteradas"
+                            >
+                              {categoria.ativo ? 'Ativa' : 'Inativa'}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
+                )}
+
+                {/* Categorias do Usuário */}
+                {categorias.filter(c => c.user_id !== null).length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3 mt-6">
+                      <div className="flex-1 h-px bg-gray-300"></div>
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Suas Categorias Personalizadas
+                      </span>
+                      <div className="flex-1 h-px bg-gray-300"></div>
+                    </div>
+                    <div className="space-y-2">
+                      {categorias.filter(c => c.user_id !== null).map((categoria) => (
+                        <div
+                          key={categoria.id}
+                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-8 h-8 rounded-full shadow-sm"
+                              style={{ backgroundColor: categoria.cor }}
+                            />
+                            <div>
+                              <p className="font-medium text-gray-900">{categoria.nome}</p>
+                              <p className="text-xs text-gray-500">
+                                {categoria.ativo ? '✓ Ativa' : '○ Inativa'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => toggleCategoriaAtiva(categoria.id, categoria.ativo)}
+                              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                                categoria.ativo
+                                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                  : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                              }`}
+                            >
+                              {categoria.ativo ? 'Ativa' : 'Inativa'}
+                            </button>
+                            <button
+                              onClick={() => removerCategoria(categoria.id)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Remover categoria"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
+
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>💡 Dica:</strong> As categorias do sistema são padrão e não podem ser removidas.
+                Você pode criar suas próprias categorias personalizadas que podem ser editadas e removidas.
+              </p>
+            </div>
           </div>
         </div>
       )}

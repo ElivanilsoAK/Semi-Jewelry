@@ -109,10 +109,10 @@ Usuário precisa selecionar "Pulseira" 50 vezes manualmente ❌
 - Brincos M
 - Argolas
 
-**10 linhas de valores**
+**92 itens no total (10 Pulseiras, 10 Correntes, 10 Pingentes, 14 Anéis, 10 Brincos G, 18 Brincos I, 16 Brincos M, 4 Argolas)**
 
 **OCR Detecta:**
-- ✅ 80 itens totais
+- ✅ 92 itens totais
 - ✅ Cada item com sua categoria correta
 - ✅ Cada item com seu valor correto
 - ✅ Todos cadastrados automaticamente
@@ -251,7 +251,7 @@ Usuário seleciona manualmente ❌
 ✅ Corrente    R$ 312    Qtd: 1
 ✅ Pingente    R$ 74     Qtd: 1
 
-Total: 80 itens detectados!
+Total: 92 itens detectados!
 
 ✅ Categorias automáticas!
 ✅ Valores corretos!
@@ -326,14 +326,14 @@ OCR gera:
 ### **Antes (OCR Simples):**
 - ❌ Só detectava valores
 - ❌ Usuário categorizava manualmente
-- ❌ 80 itens = 80 seleções de categoria
+- ❌ 92 itens = 80 seleções de categoria
 - ❌ Demorado e cansativo
 - ❌ Sujeito a erros
 
 ### **Agora (OCR Inteligente):**
 - ✅ Detecta categorias automaticamente
 - ✅ Relaciona valor → categoria
-- ✅ 80 itens = 1 clique (confirmar)
+- ✅ 92 itens = 1 clique (confirmar)
 - ✅ Rápido e eficiente
 - ✅ Preciso e confiável
 
@@ -376,7 +376,7 @@ OCR gera:
 
 **Tabela com:**
 - 8 colunas (Pulseiras, Correntes, Pingentes, Anéis, Brincos G/I/M, Argolas)
-- 10 linhas de valores
+- 92 itens no total (10 Pulseiras, 10 Correntes, 10 Pingentes, 14 Anéis, 10 Brincos G, 18 Brincos I, 16 Brincos M, 4 Argolas)
 
 **OCR Detectará:**
 ```
@@ -398,7 +398,7 @@ Correntes:
 ✅ R$ 472 (peça 3)
 ... e assim por diante
 
-Total: ~80 itens cadastrados automaticamente!
+Total: ~92 itens cadastrados automaticamente!
 ```
 
 ---
