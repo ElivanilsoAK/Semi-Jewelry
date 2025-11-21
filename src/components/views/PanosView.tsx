@@ -3,7 +3,7 @@ import { supabase, Pano } from '../../lib/supabase';
 import {
   Plus, Package2, Calendar, AlertCircle, Eye, Copy, Clock,
   User, DollarSign, TrendingUp, History, Filter, X, CheckCircle,
-  AlertTriangle
+  AlertTriangle, Trash2
 } from 'lucide-react';
 import PanoModal from '../modals/PanoModal';
 import ItensModal from '../modals/ItensModal';
@@ -156,6 +156,34 @@ export default function PanosView() {
     } catch (error) {
       console.error('Erro ao duplicar pano:', error);
       alert('Erro ao duplicar pano');
+    }
+  };
+
+  const handleDeletePano = async (pano: PanoDetalhado) => {
+    const confirmacao = window.confirm(
+      `Tem certeza que deseja excluir o pano "${pano.nome}"?\n\n` +
+      `Isso irá remover:\n` +
+      `- O pano\n` +
+      `- ${pano.total_itens || 0} itens associados\n` +
+      `- Todas as comissões relacionadas\n\n` +
+      `Esta ação NÃO pode ser desfeita!`
+    );
+
+    if (!confirmacao) return;
+
+    try {
+      const { error } = await supabase
+        .from('panos')
+        .delete()
+        .eq('id', pano.id);
+
+      if (error) throw error;
+
+      alert('Pano excluído com sucesso!');
+      loadPanos();
+    } catch (error) {
+      console.error('Erro ao excluir pano:', error);
+      alert('Erro ao excluir pano: ' + (error as Error).message);
     }
   };
 
@@ -466,6 +494,13 @@ export default function PanosView() {
                     >
                       <Copy className="w-4 h-4" />
                       Copiar
+                    </button>
+                    <button
+                      onClick={() => handleDeletePano(pano)}
+                      className="col-span-2 flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium border border-red-200"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Excluir Pano
                     </button>
                   </div>
                 </div>
