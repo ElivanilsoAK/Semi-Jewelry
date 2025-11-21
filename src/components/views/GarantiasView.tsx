@@ -8,7 +8,7 @@ interface Garantia {
   venda_id: string;
   item_original_id: string;
   item_novo_id: string | null;
-  tipo: 'troca' | 'reparo' | 'devolucao';
+  tipo: 'troca' | 'devolucao';
   motivo: string;
   status: 'pendente' | 'aprovada' | 'concluida' | 'rejeitada';
   created_at: string;
@@ -39,7 +39,7 @@ export default function GarantiasView() {
   const [itensDaVenda, setItensDaVenda] = useState<any[]>([]);
   const [itemOriginalId, setItemOriginalId] = useState<string>('');
   const [itemNovoId, setItemNovoId] = useState<string>('');
-  const [tipo, setTipo] = useState<'troca' | 'reparo' | 'devolucao'>('troca');
+  const [tipo, setTipo] = useState<'troca' | 'devolucao'>('troca');
   const [motivo, setMotivo] = useState('');
 
   useEffect(() => {
@@ -70,12 +70,10 @@ export default function GarantiasView() {
   }
 
   async function carregarVendas() {
-    const { data, error } = await supabase
-      .from('vendas')
-      .select('id, cliente_nome, data_venda')
-      .eq('user_id', user?.id)
-      .order('data_venda', { ascending: false })
-      .limit(50);
+    const { data, error } = await supabase.rpc('buscar_vendas_para_garantia', {
+      busca: busca || null,
+      limite: 50
+    });
 
     if (!error && data) {
       setVendas(data);
@@ -83,10 +81,9 @@ export default function GarantiasView() {
   }
 
   async function carregarItensDaVenda(vendaId: string) {
-    const { data, error } = await supabase
-      .from('itens_venda')
-      .select('*')
-      .eq('venda_id', vendaId);
+    const { data, error } = await supabase.rpc('buscar_itens_venda_troca', {
+      venda_id_param: vendaId
+    });
 
     if (!error && data) {
       setItensDaVenda(data);
@@ -152,7 +149,6 @@ export default function GarantiasView() {
 
   const tipoLabels = {
     troca: 'Troca',
-    reparo: 'Reparo',
     devolucao: 'Devolução',
   };
 
@@ -321,7 +317,7 @@ export default function GarantiasView() {
                   Tipo de Garantia
                 </label>
                 <div className="grid grid-cols-3 gap-2">
-                  {(['troca', 'reparo', 'devolucao'] as const).map((t) => (
+                  {(['troca', 'devolucao'] as const).map((t) => (
                     <button
                       key={t}
                       onClick={() => setTipo(t)}

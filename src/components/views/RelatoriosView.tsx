@@ -50,6 +50,7 @@ export default function RelatoriosView() {
   });
 
   useEffect(() => {
+    if (!user?.id) return;
     carregarNomeConsultora();
     if (activeTab === 'catalogo') {
       carregarItensEstoque();
@@ -58,7 +59,7 @@ export default function RelatoriosView() {
     } else if (activeTab === 'customizado') {
       carregarRelatoriosSalvos();
     }
-  }, [activeTab]);
+  }, [activeTab, user]);
 
   async function carregarNomeConsultora() {
     const { data } = await supabase
@@ -73,46 +74,53 @@ export default function RelatoriosView() {
   }
 
   async function carregarItensEstoque() {
+    if (!user?.id) return;
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('itens_pano')
       .select('*')
-      .eq('user_id', user?.id)
-      .gt('quantidade_disponivel', 0)
       .order('categoria', { ascending: true });
 
-    if (data) {
+    if (error) {
+      console.error('Erro ao carregar estoque:', error);
+      alert('Erro ao carregar itens de estoque');
+    } else if (data) {
       setItensEstoque(data);
     }
     setLoading(false);
   }
 
   async function carregarVendas() {
+    if (!user?.id) return;
     setLoading(true);
     let query = supabase
       .from('vendas')
       .select('*, clientes(nome)')
-      .eq('user_id', user?.id)
       .order('data_venda', { ascending: false });
 
     if (dataInicio) query = query.gte('data_venda', dataInicio);
     if (dataFim) query = query.lte('data_venda', dataFim);
 
-    const { data } = await query;
-    if (data) {
+    const { data, error } = await query;
+    if (error) {
+      console.error('Erro ao carregar vendas:', error);
+      alert('Erro ao carregar vendas');
+    } else if (data) {
       setVendas(data as any);
     }
     setLoading(false);
   }
 
   async function carregarRelatoriosSalvos() {
-    const { data } = await supabase
+    if (!user?.id) return;
+    const { data, error } = await supabase
       .from('relatorios_salvos')
       .select('*')
-      .eq('user_id', user?.id)
       .order('created_at', { ascending: false });
 
-    if (data) {
+    if (error) {
+      console.error('Erro ao carregar relatórios:', error);
+    } else if (data) {
       setRelatoriosSalvos(data);
     }
   }
