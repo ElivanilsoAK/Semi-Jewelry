@@ -246,7 +246,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
                   🤖 Analisando com Inteligência Artificial
                 </p>
                 <p className="text-xs text-blue-700 mt-1.5 leading-relaxed">
-                  O Google Gemini 2.0 Flash Experimental está lendo a tabela coluna por coluna, respeitando as linhas verticais. Aguarde...
+                  O Google Gemini 2.5 Pro (modelo com raciocínio espacial superior) está lendo a tabela coluna por coluna, respeitando as linhas verticais. Aguarde...
                 </p>
                 <div className="mt-2 flex gap-1">
                   <div className="h-1 w-8 bg-blue-400 rounded animate-pulse"></div>
@@ -403,7 +403,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
                 🤖 Detecção Inteligente com IA
               </p>
               <p className="text-xs text-emerald-700 mt-1 leading-relaxed">
-                Quando você enviar a foto, o <strong>Google Gemini 2.0 Flash Experimental</strong> irá ler automaticamente a tabela coluna por coluna, respeitando as linhas verticais e evitando misturar valores de colunas diferentes
+                Quando você enviar a foto, o <strong>Google Gemini 2.5 Pro</strong> irá ler automaticamente a tabela coluna por coluna, respeitando as linhas verticais e evitando misturar valores de colunas diferentes
               </p>
             </div>
           </div>
