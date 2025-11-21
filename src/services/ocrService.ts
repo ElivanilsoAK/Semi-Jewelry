@@ -54,21 +54,28 @@ function detectarCategorias(headerLine: string): string[] {
   return categorias;
 }
 
-// Extrai números de uma linha
-function extrairNumeros(linha: string): number[] {
-  const numeros: number[] = [];
-  const matches = linha.match(/\d+/g);
+// Extrai números de uma linha com informações de posição
+function extrairNumerosComPosicao(linha: string): Array<{valor: number, posicao: number}> {
+  const numeros: Array<{valor: number, posicao: number}> = [];
+  const regex = /\d+/g;
+  let match;
 
-  if (matches) {
-    for (const match of matches) {
-      const num = parseInt(match);
-      if (num >= 10 && num <= 9999) {
-        numeros.push(num);
-      }
+  while ((match = regex.exec(linha)) !== null) {
+    const num = parseInt(match[0]);
+    if (num >= 10 && num <= 9999) {
+      numeros.push({
+        valor: num,
+        posicao: match.index
+      });
     }
   }
 
   return numeros;
+}
+
+// Extrai números de uma linha (compatibilidade)
+function extrairNumeros(linha: string): number[] {
+  return extrairNumerosComPosicao(linha).map(n => n.valor);
 }
 
 // Processa tabela de inventário com colunas de categorias
@@ -81,9 +88,11 @@ function processarTabelaInventario(text: string): ExtractedItem[] {
 
   // Procura pela linha de cabeçalho com categorias
   let categorias: string[] = [];
+  let posicoesColuna: number[] = [];
   let linhaInicioDados = 0;
 
-  for (let i = 0; i < Math.min(linhas.length, 10); i++) {
+  // Primeiro, encontra o cabeçalho
+  for (let i = 0; i < Math.min(linhas.length, 15); i++) {
     const linha = linhas[i];
     const categoriasDetectadas = detectarCategorias(linha);
 
@@ -92,22 +101,35 @@ function processarTabelaInventario(text: string): ExtractedItem[] {
       linhaInicioDados = i + 1;
       console.log('Cabeçalho encontrado na linha', i);
       console.log('Categorias detectadas:', categorias);
+
+      // Detecta as posições das colunas baseado no cabeçalho
+      const palavrasLower = linha.toLowerCase();
+      for (const cat of categorias) {
+        const catLower = cat.toLowerCase();
+        const pos = palavrasLower.indexOf(catLower);
+        if (pos !== -1) {
+          posicoesColuna.push(pos);
+        }
+      }
+      console.log('Posições das colunas:', posicoesColuna);
       break;
     }
   }
 
-  // Se não encontrou cabeçalho, usa ordem padrão do papel OCR
+  // Se não encontrou cabeçalho, usa ordem padrão
   if (categorias.length === 0) {
     console.log('Cabeçalho não detectado, usando ordem padrão do papel OCR');
     categorias = ['Pulseiras', 'Correntes', 'Pingentes', 'Anéis', 'Brincos G', 'Brincos I', 'Brincos M', 'Argolas'];
-    linhaInicioDados = 0;
 
-    // Tenta encontrar primeira linha com múltiplos números
-    for (let i = 0; i < Math.min(linhas.length, 10); i++) {
-      const numeros = extrairNumeros(linhas[i]);
-      if (numeros.length >= 4) {
+    // Tenta encontrar primeira linha com múltiplos números para determinar colunas
+    for (let i = 0; i < Math.min(linhas.length, 15); i++) {
+      const numerosComPos = extrairNumerosComPosicao(linhas[i]);
+      if (numerosComPos.length >= 4) {
         linhaInicioDados = i;
+        // Usa as posições dos números como referência das colunas
+        posicoesColuna = numerosComPos.slice(0, categorias.length).map(n => n.posicao);
         console.log('Primeira linha de dados na posição:', i);
+        console.log('Posições das colunas estimadas:', posicoesColuna);
         break;
       }
     }
@@ -115,29 +137,81 @@ function processarTabelaInventario(text: string): ExtractedItem[] {
 
   console.log('Processando dados a partir da linha:', linhaInicioDados);
 
-  // Processa as linhas de dados
-  for (let i = linhaInicioDados; i < linhas.length; i++) {
+  // Analisa linhas de dados para construir mapa de colunas mais preciso
+  const valoresPorColuna: number[][] = Array(categorias.length).fill(null).map(() => []);
+  const linhasDeDados: string[] = [];
+
+  // Coleta primeiras linhas de dados
+  for (let i = linhaInicioDados; i < Math.min(linhaInicioDados + 20, linhas.length); i++) {
     const linha = linhas[i];
     const numeros = extrairNumeros(linha);
 
-    // Ignora linhas sem números suficientes
-    if (numeros.length < 2) continue;
+    if (numeros.length >= 2 && numeros.length <= 10) {
+      linhasDeDados.push(linha);
+    }
+  }
 
-    console.log(`Linha ${i}:`, numeros);
+  // Se encontramos posições de colunas, usa para mapear valores
+  if (posicoesColuna.length > 0 && linhasDeDados.length > 0) {
+    console.log('Usando mapeamento por posição de colunas');
 
-    // Processa cada número como um valor na sequência de categorias
-    for (let j = 0; j < numeros.length && j < categorias.length; j++) {
-      const valor = numeros[j];
-      const categoria = categorias[j] || 'Outro';
+    for (const linha of linhasDeDados) {
+      const numerosComPos = extrairNumerosComPosicao(linha);
 
-      // Cada valor representa 1 peça daquela categoria
-      items.push({
-        categoria: categoria,
-        valor: valor,
-        quantidade: 1
-      });
+      // Mapeia cada número à coluna mais próxima
+      for (const num of numerosComPos) {
+        let colunaIdx = 0;
+        let menorDistancia = Math.abs(num.posicao - posicoesColuna[0]);
 
-      console.log(`  → ${categoria}: R$ ${valor}`);
+        for (let j = 1; j < posicoesColuna.length; j++) {
+          const distancia = Math.abs(num.posicao - posicoesColuna[j]);
+          if (distancia < menorDistancia) {
+            menorDistancia = distancia;
+            colunaIdx = j;
+          }
+        }
+
+        // Só adiciona se a distância for razoável (dentro da coluna)
+        if (menorDistancia < 50) {
+          valoresPorColuna[colunaIdx].push(num.valor);
+        }
+      }
+    }
+  } else {
+    // Fallback: distribui números sequencialmente
+    console.log('Usando distribuição sequencial (fallback)');
+
+    for (const linha of linhasDeDados) {
+      const numeros = extrairNumeros(linha);
+
+      // Pula o primeiro número se parecer ser um código de linha (< 1000)
+      const inicioIdx = (numeros[0] < 1000 && numeros.length > 3) ? 1 : 0;
+
+      for (let j = inicioIdx; j < numeros.length; j++) {
+        const colunaIdx = j - inicioIdx;
+        if (colunaIdx < categorias.length) {
+          valoresPorColuna[colunaIdx].push(numeros[j]);
+        }
+      }
+    }
+  }
+
+  // Cria itens a partir dos valores mapeados
+  for (let i = 0; i < categorias.length; i++) {
+    const categoria = categorias[i];
+    const valores = valoresPorColuna[i];
+
+    console.log(`${categoria}: ${valores.length} valores -`, valores.slice(0, 5));
+
+    for (const valor of valores) {
+      // Filtra valores muito pequenos (provavelmente códigos)
+      if (valor >= 15) {
+        items.push({
+          categoria: categoria,
+          valor: valor,
+          quantidade: 1
+        });
+      }
     }
   }
 
