@@ -19,6 +19,7 @@ interface DetalhesVendaModalProps {
 export default function DetalhesVendaModal({ venda, onClose }: DetalhesVendaModalProps) {
   const [itensVenda, setItensVenda] = useState<ItemVendaCompleto[]>([]);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
+  const [cliente, setCliente] = useState<Cliente | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export default function DetalhesVendaModal({ venda, onClose }: DetalhesVendaModa
 
   const loadDetalhes = async () => {
     try {
-      const [itensData, pagamentosData] = await Promise.all([
+      const [itensData, pagamentosData, clienteData] = await Promise.all([
         supabase
           .from('itens_venda')
           .select(`
@@ -40,10 +41,16 @@ export default function DetalhesVendaModal({ venda, onClose }: DetalhesVendaModa
           .select('*')
           .eq('venda_id', venda.id)
           .order('numero_parcela'),
+        supabase
+          .from('clientes')
+          .select('*')
+          .eq('id', venda.cliente_id)
+          .single()
       ]);
 
       if (itensData.data) setItensVenda(itensData.data);
       if (pagamentosData.data) setPagamentos(pagamentosData.data);
+      if (clienteData.data) setCliente(clienteData.data);
     } catch (error) {
       console.error('Erro ao carregar detalhes:', error);
     } finally {
@@ -105,6 +112,8 @@ export default function DetalhesVendaModal({ venda, onClose }: DetalhesVendaModa
   };
 
   const prepararDadosComprovante = () => {
+    if (!cliente) return null;
+
     const itensComprovante = itensVenda.map(item => ({
       descricao: item.item_pano?.descricao || item.descricao,
       quantidade: item.quantidade,
@@ -120,8 +129,8 @@ export default function DetalhesVendaModal({ venda, onClose }: DetalhesVendaModa
 
     return {
       vendaId: venda.id,
-      clienteNome: venda.cliente.nome,
-      clienteTelefone: venda.cliente.telefone || undefined,
+      clienteNome: cliente.nome,
+      clienteTelefone: cliente.telefone || undefined,
       data: venda.data_venda,
       itens: itensComprovante,
       subtotal: Number(venda.valor_total) + Number(venda.desconto || 0),
@@ -134,16 +143,28 @@ export default function DetalhesVendaModal({ venda, onClose }: DetalhesVendaModa
 
   const handleImprimir = () => {
     const dados = prepararDadosComprovante();
+    if (!dados) {
+      alert('Erro ao preparar dados do comprovante');
+      return;
+    }
     ComprovanteService.imprimirComprovante(dados);
   };
 
   const handleDownloadPDF = () => {
     const dados = prepararDadosComprovante();
+    if (!dados) {
+      alert('Erro ao preparar dados do comprovante');
+      return;
+    }
     ComprovanteService.downloadPDF(dados);
   };
 
   const handleEnviarWhatsApp = () => {
     const dados = prepararDadosComprovante();
+    if (!dados) {
+      alert('Erro ao preparar dados do comprovante');
+      return;
+    }
     ComprovanteService.enviarWhatsApp(dados);
   };
 
@@ -198,7 +219,7 @@ export default function DetalhesVendaModal({ venda, onClose }: DetalhesVendaModa
             <h3 className="font-semibold text-gray-800 mb-3">Informações da Venda</h3>
             <div className="space-y-2 text-sm">
               <p>
-                <span className="font-medium">Cliente:</span> {venda.cliente.nome}
+                <span className="font-medium">Cliente:</span> {cliente?.nome || 'Carregando...'}
               </p>
               <p>
                 <span className="font-medium">Data:</span> {formatDate(venda.data_venda)}
