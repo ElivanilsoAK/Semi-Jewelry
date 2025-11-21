@@ -22,148 +22,145 @@ const CATEGORIAS_MAP: Record<string, string> = {
   'pingente': 'Pingente',
   'aneis': 'Anel',
   'anel': 'Anel',
-  'brincos g': 'Brinco G',
-  'brincos i': 'Brinco I',
-  'brincos m': 'Brinco M',
+  'brincos': 'Brinco',
   'brinco': 'Brinco',
   'argolas': 'Argola',
   'argola': 'Argola',
+  'alianças': 'Aliança',
+  'aliança': 'Aliança',
+  'tornozeleiras': 'Tornozeleira',
+  'tornozeleira': 'Tornozeleira',
 };
 
-interface TableData {
-  headers: string[];
-  rows: string[][];
+interface ParsedLine {
+  categoria?: string;
+  valores: number[];
 }
 
-function extractTableStructure(text: string): TableData {
-  const lines = text.split('\n')
-    .map(line => line.trim())
-    .filter(line => line.length > 0);
+function normalizarCategoria(texto: string): string | null {
+  const textoNormalizado = texto.toLowerCase().trim();
 
-  const headers: string[] = [];
-  const rows: string[][] = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const cleanLine = line.toLowerCase();
-
-    // Detectar linha de cabeçalho (categorias)
-    const categoryMatch = Object.keys(CATEGORIAS_MAP).find(cat =>
-      cleanLine.includes(cat)
-    );
-
-    if (categoryMatch && headers.length === 0) {
-      // Extrair todos os headers da linha
-      const parts = line.split(/\s+|\|/).filter(p => p.trim());
-      headers.push(...parts.map(p => {
-        const normalized = p.toLowerCase().trim();
-        return CATEGORIAS_MAP[normalized] || p;
-      }));
-      continue;
-    }
-
-    // Extrair valores numéricos da linha
-    const numbers = line.match(/\d+/g);
-    if (numbers && numbers.length > 0) {
-      const validNumbers = numbers
-        .map(n => parseInt(n))
-        .filter(n => n >= 10 && n < 10000);
-
-      if (validNumbers.length > 0) {
-        rows.push(validNumbers.map(String));
-      }
+  for (const [key, value] of Object.entries(CATEGORIAS_MAP)) {
+    if (textoNormalizado.includes(key)) {
+      return value;
     }
   }
 
-  return { headers, rows };
+  return null;
+}
+
+function extrairValores(texto: string): number[] {
+  const valores: number[] = [];
+  const padrao = /\d+/g;
+  let match;
+
+  while ((match = padrao.exec(texto)) !== null) {
+    const numero = parseInt(match[0]);
+    if (numero >= 10 && numero <= 9999) {
+      valores.push(numero);
+    }
+  }
+
+  return valores;
 }
 
 function parseInventoryTable(text: string): ExtractedItem[] {
   const items: ExtractedItem[] = [];
-  const { headers, rows } = extractTableStructure(text);
+  const linhas = text.split('\n')
+    .map(linha => linha.trim())
+    .filter(linha => linha.length > 3);
 
-  console.log('Headers:', headers);
-  console.log('Rows:', rows);
+  console.log('Linhas detectadas:', linhas);
 
-  if (headers.length === 0 || rows.length === 0) {
-    return items;
-  }
+  let categoriaAtual: string | null = null;
+  const valoresPorCategoria = new Map<string, Map<number, number>>();
 
-  // Processar cada coluna (categoria)
-  for (let colIndex = 0; colIndex < headers.length; colIndex++) {
-    const categoria = headers[colIndex];
-    const valorCounts = new Map<number, number>();
+  for (const linha of linhas) {
+    const categoria = normalizarCategoria(linha);
 
-    // Coletar todos os valores desta coluna
-    const valoresColuna: number[] = [];
-    for (const row of rows) {
-      if (row[colIndex]) {
-        const valor = parseInt(row[colIndex]);
-        if (!isNaN(valor) && valor >= 10 && valor < 10000) {
-          valoresColuna.push(valor);
-          valorCounts.set(valor, (valorCounts.get(valor) || 0) + 1);
-        }
+    if (categoria) {
+      categoriaAtual = categoria;
+      if (!valoresPorCategoria.has(categoria)) {
+        valoresPorCategoria.set(categoria, new Map());
       }
+      console.log('Categoria encontrada:', categoria);
+      continue;
     }
 
-    // Criar itens agrupando valores repetidos
-    valorCounts.forEach((quantidade, valor) => {
+    if (categoriaAtual) {
+      const valores = extrairValores(linha);
+
+      if (valores.length > 0) {
+        const mapaValores = valoresPorCategoria.get(categoriaAtual)!;
+
+        valores.forEach(valor => {
+          const qtdAtual = mapaValores.get(valor) || 0;
+          mapaValores.set(valor, qtdAtual + 1);
+        });
+      }
+    }
+  }
+
+  valoresPorCategoria.forEach((valoresMap, categoria) => {
+    valoresMap.forEach((quantidade, valor) => {
       items.push({
         categoria,
         valor,
         quantidade,
-        descricao: `${categoria} - ${valor}`
+        descricao: `${categoria} - R$ ${valor},00`
       });
     });
-  }
-
-  return items;
-}
-
-function deduplicateItems(items: ExtractedItem[]): ExtractedItem[] {
-  const map = new Map<string, ExtractedItem>();
-
-  items.forEach(item => {
-    const key = `${item.categoria}-${item.valor}`;
-    const existing = map.get(key);
-
-    if (existing) {
-      existing.quantidade += item.quantidade;
-    } else {
-      map.set(key, { ...item });
-    }
   });
 
-  return Array.from(map.values());
+  console.log('Itens extraídos:', items);
+
+  return items.sort((a, b) => {
+    if (a.categoria !== b.categoria) {
+      return a.categoria.localeCompare(b.categoria);
+    }
+    return a.valor - b.valor;
+  });
 }
 
 export async function processInventoryImage(imageFile: File | string): Promise<OCRResult> {
   try {
+    console.log('Iniciando processamento OCR...');
+
     const { data: { text } } = await Tesseract.recognize(
       imageFile,
       'por',
       {
-        logger: (m) => console.log(m),
+        logger: (m) => {
+          if (m.status === 'recognizing text') {
+            console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+          }
+        },
       }
     );
 
-    console.log('OCR Raw Text:', text);
+    console.log('OCR Texto extraído:', text);
 
     const extractedItems = parseInventoryTable(text);
-    const uniqueItems = deduplicateItems(extractedItems);
 
-    console.log('Extracted Items:', uniqueItems);
+    if (extractedItems.length === 0) {
+      console.warn('Nenhum item foi extraído do texto OCR');
+      return {
+        items: [],
+        success: false,
+        error: 'Não foi possível identificar itens na imagem. Verifique se a foto está nítida e bem iluminada.',
+      };
+    }
 
     return {
-      items: uniqueItems,
+      items: extractedItems,
       success: true,
     };
   } catch (error) {
-    console.error('OCR Error:', error);
+    console.error('Erro no OCR:', error);
     return {
       items: [],
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: error instanceof Error ? error.message : 'Erro desconhecido no processamento OCR',
     };
   }
 }

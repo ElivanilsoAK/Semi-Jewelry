@@ -16,7 +16,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
     data_devolucao: '',
     observacoes: '',
     status: 'ativo' as 'ativo' | 'devolvido',
-    comissao_percentual: 0,
+    percentual_comissao: 10,
     fornecedor: 'Magold',
   });
 
@@ -33,10 +33,10 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
       setFormData({
         nome: pano.nome,
         data_retirada: pano.data_retirada,
-        data_devolucao: pano.data_devolucao,
+        data_devolucao: pano.data_devolucao || '',
         observacoes: pano.observacoes || '',
         status: pano.status,
-        comissao_percentual: pano.comissao_percentual || 0,
+        percentual_comissao: pano.percentual_comissao || 10,
         fornecedor: pano.fornecedor || 'Magold',
       });
       if (pano.foto_url) {
@@ -89,6 +89,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
       let fotoUrl = pano?.foto_url || null;
       let newPanoId = pano?.id;
 
+      // Upload da foto se houver
       if (photoFile) {
         const uploadedUrl = await uploadPhoto(photoFile);
         if (uploadedUrl) {
@@ -96,16 +97,32 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
         }
       }
 
+      // Preparar dados do pano
+      const panoData: any = {
+        nome: formData.nome,
+        data_retirada: formData.data_retirada,
+        data_devolucao: formData.data_devolucao || null,
+        observacoes: formData.observacoes || null,
+        status: formData.status,
+        percentual_comissao: formData.percentual_comissao || 10,
+        fornecedor: formData.fornecedor || 'Magold',
+        foto_url: fotoUrl,
+      };
+
       if (pano) {
+        // Atualizar pano existente
         const { error } = await supabase
           .from('panos')
-          .update({ ...formData, foto_url: fotoUrl })
+          .update(panoData)
           .eq('id', pano.id);
 
         if (error) throw error;
         newPanoId = pano.id;
+
+        alert('Pano atualizado com sucesso!');
       } else {
-        const dataWithUserId = await withUserId({ ...formData, foto_url: fotoUrl });
+        // Criar novo pano
+        const dataWithUserId = await withUserId(panoData);
         const { data: insertedData, error } = await supabase
           .from('panos')
           .insert([dataWithUserId])
@@ -116,25 +133,30 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
         newPanoId = insertedData.id;
       }
 
-      if (photoFile && newPanoId) {
+      // Processar OCR se houver foto nova
+      if (photoFile && newPanoId && !pano) {
         setSavedPanoId(newPanoId);
         setProcessingOCR(true);
 
-        const ocrResult = await processInventoryImage(photoFile);
-        setProcessingOCR(false);
+        try {
+          const ocrResult = await processInventoryImage(photoFile);
+          setProcessingOCR(false);
 
-        if (ocrResult.success && ocrResult.items.length > 0) {
-          setOcrItems(ocrResult.items);
-          setShowOCRPreview(true);
-        } else {
-          onClose();
+          if (ocrResult.success && ocrResult.items.length > 0) {
+            setOcrItems(ocrResult.items);
+            setShowOCRPreview(true);
+            return; // Não fechar, vai para preview do OCR
+          }
+        } catch (ocrError) {
+          console.error('Erro no OCR:', ocrError);
+          setProcessingOCR(false);
         }
-      } else {
-        onClose();
       }
+
+      onClose();
     } catch (error) {
       console.error('Erro ao salvar pano:', error);
-      alert('Erro ao salvar pano');
+      alert('Erro ao salvar pano: ' + (error as Error).message);
       setProcessingOCR(false);
     } finally {
       setUploading(false);
@@ -144,17 +166,17 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
   const handleOCRConfirm = async (confirmedItems: ExtractedItem[]) => {
     try {
       if (!savedPanoId) {
-        throw new Error('Pano ID not found');
+        throw new Error('Pano ID não encontrado');
       }
 
       const itemsToInsert = await Promise.all(
         confirmedItems.map(async (item) => {
           return await withUserId({
             pano_id: savedPanoId,
-            categoria: item.categoria as any,
-            descricao: `${item.categoria.charAt(0).toUpperCase() + item.categoria.slice(1)} - ${item.numero}`,
-            quantidade_inicial: 1,
-            quantidade_disponivel: 1,
+            categoria: item.categoria,
+            descricao: item.descricao || `${item.categoria} - R$ ${item.valor}`,
+            quantidade_inicial: item.quantidade || 1,
+            quantidade_disponivel: item.quantidade || 1,
             valor_unitario: item.valor || 0,
           });
         })
@@ -164,13 +186,16 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
         .from('itens_pano')
         .insert(itemsToInsert);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao inserir itens:', error);
+        throw error;
+      }
 
-      alert(`${confirmedItems.length} itens criados com sucesso!`);
+      alert(`${confirmedItems.length} itens adicionados ao pano com sucesso!`);
       onClose();
     } catch (error) {
       console.error('Erro ao salvar itens:', error);
-      alert('Erro ao salvar itens extraídos do OCR');
+      alert('Erro ao salvar itens: ' + (error as Error).message);
     }
   };
 
@@ -292,8 +317,8 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
                 step="0.01"
                 min="0"
                 max="100"
-                value={formData.comissao_percentual}
-                onChange={(e) => setFormData({ ...formData, comissao_percentual: parseFloat(e.target.value) || 0 })}
+                value={formData.percentual_comissao}
+                onChange={(e) => setFormData({ ...formData, percentual_comissao: parseFloat(e.target.value) || 0 })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 placeholder="0"
                 disabled={uploading || processingOCR}
