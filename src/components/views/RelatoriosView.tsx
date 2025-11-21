@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { CatalogoService } from '../../services/catalogoService';
 
 interface ItemEstoque {
   id: string;
@@ -165,181 +166,17 @@ export default function RelatoriosView() {
     carregarRelatoriosSalvos();
   }
 
-  function gerarCatalogoPDF() {
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    if (!printWindow) return;
-
-    const categorias = [...new Set(itensEstoque.map(item => item.categoria))].sort();
-
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Catálogo - ${nomeConsultora || 'SPHERE'}</title>
-          <style>
-            * {
-              margin: 0;
-              padding: 0;
-              box-sizing: border-box;
-            }
-            body {
-              font-family: 'Arial', sans-serif;
-              background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-              padding: 20px;
-            }
-            .catalogo {
-              max-width: 1200px;
-              margin: 0 auto;
-              background: white;
-              border-radius: 20px;
-              overflow: hidden;
-              box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            }
-            .header {
-              background: linear-gradient(135deg, #D4AF37 0%, #F59E0B 100%);
-              color: white;
-              padding: 40px;
-              text-align: center;
-            }
-            .header h1 {
-              font-size: 48px;
-              margin-bottom: 10px;
-              text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            }
-            .header p {
-              font-size: 18px;
-              opacity: 0.9;
-            }
-            .categoria {
-              padding: 30px;
-              border-bottom: 2px solid #f0f0f0;
-            }
-            .categoria:last-child {
-              border-bottom: none;
-            }
-            .categoria h2 {
-              color: #D4AF37;
-              font-size: 32px;
-              margin-bottom: 20px;
-              padding-bottom: 10px;
-              border-bottom: 3px solid #D4AF37;
-            }
-            .produtos {
-              display: grid;
-              grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-              gap: 20px;
-            }
-            .produto {
-              border: 2px solid #e0e0e0;
-              border-radius: 15px;
-              overflow: hidden;
-              transition: transform 0.3s;
-              background: white;
-            }
-            .produto:hover {
-              transform: translateY(-5px);
-              box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            }
-            .produto-img {
-              width: 100%;
-              height: 200px;
-              background: linear-gradient(135deg, #D4AF37 0%, #F59E0B 100%);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              color: white;
-              font-size: 64px;
-            }
-            .produto-img img {
-              width: 100%;
-              height: 100%;
-              object-fit: cover;
-            }
-            .produto-info {
-              padding: 15px;
-            }
-            .produto-nome {
-              font-weight: bold;
-              font-size: 16px;
-              color: #333;
-              margin-bottom: 8px;
-              min-height: 40px;
-            }
-            .produto-preco {
-              color: #D4AF37;
-              font-size: 24px;
-              font-weight: bold;
-            }
-            .produto-estoque {
-              color: #666;
-              font-size: 12px;
-              margin-top: 5px;
-            }
-            .footer {
-              background: #2c3e50;
-              color: white;
-              padding: 30px;
-              text-align: center;
-            }
-            .footer p {
-              margin: 5px 0;
-            }
-            @media print {
-              body {
-                background: white;
-                padding: 0;
-              }
-              .catalogo {
-                box-shadow: none;
-              }
-              .produto:hover {
-                transform: none;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="catalogo">
-            <div class="header">
-              <h1>✨ ${nomeConsultora || 'SPHERE'} ✨</h1>
-              <p>Catálogo de Produtos - ${new Date().toLocaleDateString('pt-BR')}</p>
-            </div>
-            ${categorias.map(categoria => {
-              const produtosCategoria = itensEstoque.filter(item => item.categoria === categoria);
-              return `
-                <div class="categoria">
-                  <h2>${categoria || 'Sem Categoria'}</h2>
-                  <div class="produtos">
-                    ${produtosCategoria.map(produto => `
-                      <div class="produto">
-                        <div class="produto-img">
-                          ${produto.foto_url
-                            ? `<img src="${produto.foto_url}" alt="${produto.descricao}" />`
-                            : '💎'
-                          }
-                        </div>
-                        <div class="produto-info">
-                          <div class="produto-nome">${produto.descricao}</div>
-                          <div class="produto-preco">R$ ${produto.valor_unitario.toFixed(2)}</div>
-                          <div class="produto-estoque">Disponível: ${produto.quantidade_disponivel}</div>
-                        </div>
-                      </div>
-                    `).join('')}
-                  </div>
-                </div>
-              `;
-            }).join('')}
-            <div class="footer">
-              <p><strong>Entre em contato para fazer seu pedido!</strong></p>
-              <p>© ${new Date().getFullYear()} ${nomeConsultora || 'SPHERE'} - Todos os direitos reservados</p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
-
-    printWindow.document.write(html);
-    printWindow.document.close();
+  async function gerarCatalogoPDF() {
+    setLoading(true);
+    try {
+      await CatalogoService.gerarCatalogoPDF(itensEstoque, nomeConsultora || 'SPHERE');
+      alert('✅ Catálogo gerado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao gerar catálogo:', error);
+      alert('❌ Erro ao gerar catálogo. Verifique se há produtos disponíveis.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   function exportarVendasExcel() {
@@ -360,125 +197,22 @@ export default function RelatoriosView() {
     link.click();
   }
 
-  function exportarVendasPDF() {
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    if (!printWindow) return;
-
-    const totalVendas = vendas.reduce((sum, v) => sum + v.valor_total, 0);
-
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Relatório de Vendas - ${nomeConsultora || 'SPHERE'}</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              padding: 40px;
-              color: #333;
-            }
-            .header {
-              text-align: center;
-              margin-bottom: 30px;
-              padding-bottom: 20px;
-              border-bottom: 3px solid #D4AF37;
-            }
-            .header h1 {
-              color: #D4AF37;
-              margin-bottom: 10px;
-            }
-            .info {
-              background: #f5f5f5;
-              padding: 15px;
-              border-radius: 8px;
-              margin-bottom: 20px;
-            }
-            .info p {
-              margin: 5px 0;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-top: 20px;
-            }
-            th, td {
-              padding: 12px;
-              text-align: left;
-              border-bottom: 1px solid #ddd;
-            }
-            th {
-              background: #D4AF37;
-              color: white;
-              font-weight: bold;
-            }
-            tr:hover {
-              background: #f5f5f5;
-            }
-            .total {
-              margin-top: 20px;
-              text-align: right;
-              font-size: 20px;
-              font-weight: bold;
-              color: #D4AF37;
-            }
-            .footer {
-              margin-top: 40px;
-              text-align: center;
-              color: #666;
-              font-size: 12px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>${nomeConsultora || 'SPHERE'}</h1>
-            <h2>Relatório de Vendas</h2>
-          </div>
-
-          <div class="info">
-            <p><strong>Período:</strong> ${dataInicio ? new Date(dataInicio).toLocaleDateString('pt-BR') : 'Início'} até ${dataFim ? new Date(dataFim).toLocaleDateString('pt-BR') : 'Hoje'}</p>
-            <p><strong>Total de Vendas:</strong> ${vendas.length}</p>
-            <p><strong>Gerado em:</strong> ${new Date().toLocaleString('pt-BR')}</p>
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Cliente</th>
-                <th>Valor</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${vendas.map(v => `
-                <tr>
-                  <td>${new Date(v.data_venda).toLocaleDateString('pt-BR')}</td>
-                  <td>${v.clientes.nome}</td>
-                  <td>R$ ${v.valor_total.toFixed(2)}</td>
-                  <td>${v.status_pagamento}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-
-          <div class="total">
-            Total: R$ ${totalVendas.toFixed(2)}
-          </div>
-
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} ${nomeConsultora || 'SPHERE'} - Relatório gerado automaticamente</p>
-          </div>
-
-          <script>
-            window.print();
-          </script>
-        </body>
-      </html>
-    `;
-
-    printWindow.document.write(html);
-    printWindow.document.close();
+  async function exportarVendasPDF() {
+    setLoading(true);
+    try {
+      await CatalogoService.gerarRelatorioVendasPDF(
+        vendas,
+        nomeConsultora || 'SPHERE',
+        dataInicio,
+        dataFim
+      );
+      alert('✅ Relatório de vendas gerado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao gerar relatório:', error);
+      alert('❌ Erro ao gerar relatório de vendas.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   const colunasDisponiveis = {
