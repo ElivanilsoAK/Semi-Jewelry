@@ -658,12 +658,16 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
                             ))}
                           </select>
 
-                          {formaPagamento === 'negociacao' && numeroParcelas > 1 && (
+                          {formaPagamento === 'negociacao' && numeroParcelas >= 1 && (
                             <div className="space-y-2 p-3 bg-silk rounded-lg border border-gold-ak">
-                              <label className="block text-xs font-bold text-charcoal mb-2">Datas de Vencimento</label>
+                              <label className="block text-xs font-bold text-charcoal mb-2">
+                                {numeroParcelas === 1 ? 'Data de Vencimento' : 'Datas de Vencimento'}
+                              </label>
                               {datasPersonalizadas.map((data, index) => (
                                 <div key={index} className="flex items-center gap-2">
-                                  <span className="text-sm font-medium w-16">Parcela {index + 1}:</span>
+                                  {numeroParcelas > 1 && (
+                                    <span className="text-sm font-medium w-16">Parcela {index + 1}:</span>
+                                  )}
                                   <input
                                     type="date"
                                     value={data}

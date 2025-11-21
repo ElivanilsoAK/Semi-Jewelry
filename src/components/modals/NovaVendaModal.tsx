@@ -152,7 +152,7 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
       return;
     }
 
-    if (numeroParcelas > 1 && datasParcelas.some(d => !d)) {
+    if (numeroParcelas >= 1 && datasParcelas.some(d => !d)) {
       alert('Preencha todas as datas de vencimento');
       return;
     }
@@ -590,19 +590,25 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
                 </div>
               </div>
 
-              {numeroParcelas > 1 && (
+              {numeroParcelas >= 1 && (
                 <div>
                   <label className="block text-sm font-bold text-charcoal mb-3">
                     {formaPagamento === 'negociacao'
-                      ? 'Configure cada parcela (data e valor)'
-                      : 'Datas de Vencimento das Parcelas'}
+                      ? numeroParcelas === 1
+                        ? 'Configure a parcela (data e valor)'
+                        : 'Configure cada parcela (data e valor)'
+                      : numeroParcelas === 1
+                        ? 'Data de Vencimento'
+                        : 'Datas de Vencimento das Parcelas'}
                   </label>
                   <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
                     {datasParcelas.map((data, index) => (
                       <div key={index} className="flex items-center gap-2 bg-gray-50 p-3 rounded-lg">
-                        <span className="text-sm font-bold text-charcoal w-20">
-                          Parcela {index + 1}:
-                        </span>
+                        {numeroParcelas > 1 && (
+                          <span className="text-sm font-bold text-charcoal w-20">
+                            Parcela {index + 1}:
+                          </span>
+                        )}
                         <input
                           type="date"
                           value={data}
