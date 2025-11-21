@@ -171,12 +171,13 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
         previousPagamentos,
         clientes,
         panos,
-        comissoes,
+        panosData,
         allClientes,
         allVendas,
         allPagamentos,
         pagamentosAtrasados,
-        itensVendidos
+        itensVendidos,
+        configSistema
       ] = await Promise.all([
         currentVendasQuery,
         previousVendasQuery,
@@ -184,17 +185,23 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
         supabase.from('pagamentos').select('*').eq('status', 'pendente'),
         supabase.from('clientes').select('id', { count: 'exact', head: true }),
         supabase.from('panos').select('id', { count: 'exact', head: true }).eq('status', 'ativo'),
-        supabase.from('comissoes').select('valor_comissao'),
+        supabase.from('panos').select('percentual_comissao').eq('status', 'ativo').maybeSingle(),
         supabase.from('clientes').select('*'),
         supabase.from('vendas').select('*'),
         supabase.from('pagamentos').select('*'),
         supabase.from('pagamentos').select('*').eq('status', 'pendente').lt('data_vencimento', new Date().toISOString()),
-        itensVendidosQuery
+        itensVendidosQuery,
+        supabase.from('configuracoes_sistema').select('*').maybeSingle()
       ]);
 
       const currentValorTotal = currentVendas.data?.reduce((sum, v) => sum + Number(v.valor_total), 0) || 0;
       const previousValorTotal = previousVendas.data?.reduce((sum, v) => sum + Number(v.valor_total), 0) || 0;
-      const comissaoTotal = comissoes.data?.reduce((sum, c) => sum + Number(c.valor_comissao), 0) || 0;
+
+      const vendasPagas = currentVendas.data?.filter(v => v.status_pagamento === 'pago') || [];
+      const valorVendasPagas = vendasPagas.reduce((sum, v) => sum + Number(v.valor_total), 0);
+      const percentualComissao = panosData.data?.percentual_comissao || 10;
+      const comissaoTotal = (valorVendasPagas * Number(percentualComissao)) / 100;
+
       const currentTicketMedio = currentVendas.data?.length ? currentValorTotal / currentVendas.data.length : 0;
       const previousTicketMedio = previousVendas.data?.length ? previousValorTotal / previousVendas.data.length : 0;
 
