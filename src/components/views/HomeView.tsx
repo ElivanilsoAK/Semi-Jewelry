@@ -25,13 +25,14 @@ interface ClienteRanking {
   total: number;
 }
 
-type DateRange = 'today' | 'week' | 'month' | 'year';
+type DateRange = 'today' | 'week' | 'month' | 'year' | 'all';
 
 const dateRangeLabels = {
   today: 'Hoje',
   week: 'Esta Semana',
   month: 'Este Mês',
-  year: 'Este Ano'
+  year: 'Este Ano',
+  all: 'Tudo'
 };
 
 interface HomeViewProps {
@@ -93,6 +94,11 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
     let previousEnd: Date;
 
     switch (dateRange) {
+      case 'all':
+        currentStart = new Date(2000, 0, 1);
+        previousStart = new Date(2000, 0, 1);
+        previousEnd = new Date(2000, 0, 1);
+        break;
       case 'today':
         currentStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         previousEnd = new Date(currentStart);
@@ -128,6 +134,25 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
   const loadStats = async () => {
     try {
       const { currentStart, currentEnd, previousStart, previousEnd } = getDateRanges();
+      const isAll = dateRange === 'all';
+
+      let currentVendasQuery = supabase.from('vendas').select('*');
+      let previousVendasQuery = supabase.from('vendas').select('*');
+      let itensVendidosQuery = supabase.from('vendas').select('itens_vendidos');
+
+      if (!isAll) {
+        currentVendasQuery = currentVendasQuery
+          .gte('data_venda', currentStart.toISOString())
+          .lte('data_venda', currentEnd.toISOString());
+
+        previousVendasQuery = previousVendasQuery
+          .gte('data_venda', previousStart.toISOString())
+          .lte('data_venda', previousEnd.toISOString());
+
+        itensVendidosQuery = itensVendidosQuery
+          .gte('data_venda', currentStart.toISOString())
+          .lte('data_venda', currentEnd.toISOString());
+      }
 
       const [
         currentVendas,
@@ -143,8 +168,8 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
         pagamentosAtrasados,
         itensVendidos
       ] = await Promise.all([
-        supabase.from('vendas').select('*').gte('data_venda', currentStart.toISOString()).lte('data_venda', currentEnd.toISOString()),
-        supabase.from('vendas').select('*').gte('data_venda', previousStart.toISOString()).lte('data_venda', previousEnd.toISOString()),
+        currentVendasQuery,
+        previousVendasQuery,
         supabase.from('pagamentos').select('*').eq('status', 'pendente'),
         supabase.from('pagamentos').select('*').eq('status', 'pendente'),
         supabase.from('clientes').select('id', { count: 'exact', head: true }),
@@ -154,7 +179,7 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
         supabase.from('vendas').select('*'),
         supabase.from('pagamentos').select('*'),
         supabase.from('pagamentos').select('*').eq('status', 'pendente').lt('data_vencimento', new Date().toISOString()),
-        supabase.from('vendas').select('itens_vendidos').gte('data_venda', currentStart.toISOString()).lte('data_venda', currentEnd.toISOString())
+        itensVendidosQuery
       ]);
 
       const currentValorTotal = currentVendas.data?.reduce((sum, v) => sum + Number(v.valor_total), 0) || 0;
