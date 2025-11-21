@@ -5,6 +5,7 @@ interface ItemComprovante {
   quantidade: number;
   valor_unitario: number;
   valor_total: number;
+  categoria?: string;
 }
 
 interface DadosComprovante {
@@ -17,264 +18,392 @@ interface DadosComprovante {
   desconto: number;
   total: number;
   formaPagamento: string;
+  nomeLoja?: string;
   parcelas?: {
     numero: number;
     valor: number;
     vencimento: string;
+    status?: string;
   }[];
 }
 
 export class ComprovanteService {
-  private static readonly MENSAGEM_ANA_KELLY = `
-🌟 *Agradecemos sua preferência!* 🌟
-
-Obrigada por adquirir seus produtos com *Ana Kelly*!
-
-Sua confiança é muito importante para nós. Estamos sempre à disposição para melhor atendê-la.
-
-✨ Volte sempre! ✨
-
-_Ana Kelly - Semijoias de Qualidade_
-  `.trim();
-
-  static gerarComprovanteTexto(dados: DadosComprovante): string {
-    const itensTexto = dados.itens
-      .map(item => `${item.quantidade}x ${item.descricao} - R$ ${item.valor_total.toFixed(2)}`)
-      .join('\n');
-
-    const parcelasTexto = dados.parcelas && dados.parcelas.length > 1
-      ? `\n\nPARCELAS:\n${dados.parcelas
-          .map(p => `${p.numero}ª - R$ ${p.valor.toFixed(2)} - Venc: ${new Date(p.vencimento).toLocaleDateString('pt-BR')}`)
-          .join('\n')}`
-      : dados.parcelas && dados.parcelas.length === 1
-      ? '\n\nÀ VISTA'
-      : '';
-
-    return `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   🌟 ANA KELLY - SEMIJOIAS 🌟
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-COMPROVANTE DE VENDA
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-DADOS DO CLIENTE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Cliente: ${dados.clienteNome}
-${dados.clienteTelefone ? `Telefone: ${dados.clienteTelefone}` : ''}
-
-Data: ${new Date(dados.data).toLocaleDateString('pt-BR')} às ${new Date(dados.data).toLocaleTimeString('pt-BR')}
-Venda: #${dados.vendaId.slice(0, 8).toUpperCase()}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PRODUTOS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-${itensTexto}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-VALORES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Subtotal: R$ ${dados.subtotal.toFixed(2)}
-${dados.desconto > 0 ? `Desconto: -R$ ${dados.desconto.toFixed(2)}\n` : ''}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TOTAL: R$ ${dados.total.toFixed(2)}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Forma de Pagamento: ${dados.formaPagamento.toUpperCase()}
-${parcelasTexto}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-${this.MENSAGEM_ANA_KELLY}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    `.trim();
-  }
+  private static readonly COR_PRIMARIA = '#D4AF37';
+  private static readonly COR_SECUNDARIA = '#B8941F';
+  private static readonly COR_TEXTO = '#2D3748';
+  private static readonly COR_TEXTO_CLARO = '#718096';
 
   static gerarPDF(dados: DadosComprovante): jsPDF {
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: [80, 200]
+      format: 'a4'
     });
 
-    let y = 10;
-    const lineHeight = 5;
-    const pageWidth = 80;
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 20;
+    let y = margin;
 
-    doc.setFontSize(10);
+    const nomeLoja = dados.nomeLoja || 'SPHERE';
+
+    doc.setFillColor(212, 175, 55);
+    doc.rect(0, 0, pageWidth, 50, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(32);
     doc.setFont('helvetica', 'bold');
-    doc.text('ANA KELLY - SEMIJOIAS', pageWidth / 2, y, { align: 'center' });
-    y += lineHeight;
+    doc.text(nomeLoja, pageWidth / 2, y + 15, { align: 'center' });
 
-    doc.setFontSize(8);
-    doc.text('COMPROVANTE DE VENDA', pageWidth / 2, y, { align: 'center' });
-    y += lineHeight * 1.5;
-
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
-    doc.text(`Cliente: ${dados.clienteNome}`, 5, y);
-    y += lineHeight;
+    doc.text('Semijoias de Qualidade Premium', pageWidth / 2, y + 25, { align: 'center' });
+
+    y = 60;
+
+    doc.setTextColor(45, 55, 72);
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('COMPROVANTE DE VENDA', pageWidth / 2, y, { align: 'center' });
+
+    y += 15;
+    doc.setFillColor(212, 175, 55);
+    doc.rect(margin, y, pageWidth - 2 * margin, 0.5, 'F');
+    y += 10;
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(113, 128, 150);
+
+    const vendaInfo = [
+      ['Venda:', `#${dados.vendaId.slice(0, 8).toUpperCase()}`],
+      ['Data:', new Date(dados.data).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })],
+    ];
+
+    vendaInfo.forEach(([label, value]) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(113, 128, 150);
+      doc.text(label, margin, y);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(45, 55, 72);
+      doc.text(value, margin + 35, y);
+      y += 7;
+    });
+
+    y += 5;
+    doc.setFillColor(249, 250, 251);
+    doc.rect(margin, y, pageWidth - 2 * margin, 25, 'F');
+
+    doc.setFillColor(212, 175, 55);
+    doc.rect(margin, y, 3, 25, 'F');
+
+    y += 8;
+    doc.setFontSize(10);
+    doc.setTextColor(113, 128, 150);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CLIENTE', margin + 8, y);
+
+    y += 7;
+    doc.setFontSize(12);
+    doc.setTextColor(45, 55, 72);
+    doc.setFont('helvetica', 'bold');
+    doc.text(dados.clienteNome, margin + 8, y);
 
     if (dados.clienteTelefone) {
-      doc.text(`Tel: ${dados.clienteTelefone}`, 5, y);
-      y += lineHeight;
+      y += 6;
+      doc.setFontSize(10);
+      doc.setTextColor(113, 128, 150);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`📱 ${dados.clienteTelefone}`, margin + 8, y);
     }
 
-    doc.text(`Data: ${new Date(dados.data).toLocaleDateString('pt-BR')}`, 5, y);
-    y += lineHeight;
-    doc.text(`Venda: #${dados.vendaId.slice(0, 8).toUpperCase()}`, 5, y);
-    y += lineHeight * 1.5;
+    y += 15;
 
+    doc.setFillColor(212, 175, 55);
+    doc.rect(margin, y, pageWidth - 2 * margin, 10, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.text('PRODUTOS', 5, y);
-    y += lineHeight;
 
+    const colItem = margin + 5;
+    const colQtd = pageWidth - margin - 95;
+    const colUnit = pageWidth - margin - 65;
+    const colTotal = pageWidth - margin - 35;
+
+    doc.text('PRODUTO', colItem, y + 7);
+    doc.text('QTD', colQtd, y + 7, { align: 'center' });
+    doc.text('UNIT.', colUnit, y + 7, { align: 'right' });
+    doc.text('TOTAL', colTotal, y + 7, { align: 'right' });
+
+    y += 12;
+
+    doc.setTextColor(45, 55, 72);
     doc.setFont('helvetica', 'normal');
-    dados.itens.forEach(item => {
-      const texto = `${item.quantidade}x ${item.descricao}`;
-      const valor = `R$ ${item.valor_total.toFixed(2)}`;
-      doc.text(texto, 5, y);
-      doc.text(valor, pageWidth - 5, y, { align: 'right' });
-      y += lineHeight;
-    });
+    doc.setFontSize(10);
 
-    y += lineHeight * 0.5;
-    doc.line(5, y, pageWidth - 5, y);
-    y += lineHeight;
+    dados.itens.forEach((item, index) => {
+      if (y > pageHeight - 80) {
+        doc.addPage();
+        y = margin;
+      }
 
-    doc.text('Subtotal:', 5, y);
-    doc.text(`R$ ${dados.subtotal.toFixed(2)}`, pageWidth - 5, y, { align: 'right' });
-    y += lineHeight;
+      if (index % 2 === 0) {
+        doc.setFillColor(249, 250, 251);
+        doc.rect(margin, y - 4, pageWidth - 2 * margin, 10, 'F');
+      }
 
-    if (dados.desconto > 0) {
-      doc.text('Desconto:', 5, y);
-      doc.text(`-R$ ${dados.desconto.toFixed(2)}`, pageWidth - 5, y, { align: 'right' });
-      y += lineHeight;
-    }
-
-    doc.line(5, y, pageWidth - 5, y);
-    y += lineHeight;
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.text('TOTAL:', 5, y);
-    doc.text(`R$ ${dados.total.toFixed(2)}`, pageWidth - 5, y, { align: 'right' });
-    y += lineHeight * 1.5;
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
-    doc.text(`Pagamento: ${dados.formaPagamento}`, 5, y);
-    y += lineHeight;
-
-    if (dados.parcelas && dados.parcelas.length > 1) {
-      y += lineHeight * 0.5;
       doc.setFont('helvetica', 'bold');
-      doc.text('PARCELAS:', 5, y);
-      y += lineHeight;
+      doc.text(item.descricao, colItem, y);
+
+      if (item.categoria) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(113, 128, 150);
+        doc.text(item.categoria, colItem, y + 4);
+        doc.setFontSize(10);
+        doc.setTextColor(45, 55, 72);
+      }
 
       doc.setFont('helvetica', 'normal');
-      dados.parcelas.forEach(p => {
-        const texto = `${p.numero}ª - R$ ${p.valor.toFixed(2)}`;
-        const venc = new Date(p.vencimento).toLocaleDateString('pt-BR');
-        doc.text(texto, 5, y);
-        doc.text(venc, pageWidth - 5, y, { align: 'right' });
-        y += lineHeight;
-      });
+      doc.text(item.quantidade.toString(), colQtd, y, { align: 'center' });
+      doc.text(`R$ ${item.valor_unitario.toFixed(2)}`, colUnit, y, { align: 'right' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.text(`R$ ${item.valor_total.toFixed(2)}`, colTotal, y, { align: 'right' });
+
+      y += item.categoria ? 12 : 10;
+    });
+
+    y += 5;
+    doc.setDrawColor(212, 175, 55);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 10;
+
+    const totaisCol1 = margin + 10;
+    const totaisCol2 = pageWidth - margin - 10;
+
+    if (dados.desconto > 0) {
+      doc.setTextColor(113, 128, 150);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text('Subtotal:', totaisCol1, y);
+      doc.text(`R$ ${dados.subtotal.toFixed(2)}`, totaisCol2, y, { align: 'right' });
+      y += 7;
+
+      doc.setTextColor(220, 38, 38);
+      doc.text('Desconto:', totaisCol1, y);
+      doc.text(`- R$ ${dados.desconto.toFixed(2)}`, totaisCol2, y, { align: 'right' });
+      y += 10;
     }
 
-    y += lineHeight;
-    doc.line(5, y, pageWidth - 5, y);
-    y += lineHeight;
+    doc.setFillColor(212, 175, 55);
+    doc.roundedRect(margin, y - 2, pageWidth - 2 * margin, 12, 2, 2, 'F');
 
-    doc.setFontSize(6);
+    doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    const mensagens = this.MENSAGEM_ANA_KELLY.split('\n');
-    mensagens.forEach(linha => {
-      if (linha.trim()) {
-        doc.text(linha.replace(/[*_]/g, ''), pageWidth / 2, y, { align: 'center' });
-        y += lineHeight * 0.8;
-      }
-    });
+    doc.setFontSize(14);
+    doc.text('TOTAL:', totaisCol1, y + 7);
+    doc.text(`R$ ${dados.total.toFixed(2)}`, totaisCol2, y + 7, { align: 'right' });
+
+    y += 20;
+
+    doc.setFillColor(249, 250, 251);
+    doc.rect(margin, y, pageWidth - 2 * margin, 15, 'F');
+
+    y += 8;
+    doc.setTextColor(113, 128, 150);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('FORMA DE PAGAMENTO:', margin + 5, y);
+
+    doc.setTextColor(45, 55, 72);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    const formaPgtoTexto = dados.formaPagamento.toUpperCase().replace('_', ' ');
+    doc.text(formaPgtoTexto, margin + 60, y);
+
+    y += 20;
+
+    if (dados.parcelas && dados.parcelas.length > 1) {
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(45, 55, 72);
+      doc.text('PARCELAS', margin, y);
+      y += 8;
+
+      const parcelaHeader = y;
+      doc.setFillColor(249, 250, 251);
+      doc.rect(margin, parcelaHeader - 4, pageWidth - 2 * margin, 8, 'F');
+
+      doc.setFontSize(9);
+      doc.setTextColor(113, 128, 150);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PARCELA', margin + 5, parcelaHeader);
+      doc.text('VALOR', pageWidth / 2, parcelaHeader, { align: 'center' });
+      doc.text('VENCIMENTO', pageWidth - margin - 40, parcelaHeader);
+      doc.text('STATUS', pageWidth - margin - 5, parcelaHeader, { align: 'right' });
+
+      y += 8;
+
+      dados.parcelas.forEach((parcela, index) => {
+        if (y > pageHeight - 30) {
+          doc.addPage();
+          y = margin;
+        }
+
+        if (index % 2 === 0) {
+          doc.setFillColor(255, 255, 255);
+          doc.rect(margin, y - 4, pageWidth - 2 * margin, 8, 'F');
+        }
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(45, 55, 72);
+
+        doc.text(`${parcela.numero}ª`, margin + 5, y);
+        doc.text(`R$ ${parcela.valor.toFixed(2)}`, pageWidth / 2, y, { align: 'center' });
+        doc.text(new Date(parcela.vencimento).toLocaleDateString('pt-BR'), pageWidth - margin - 40, y);
+
+        const status = parcela.status || 'pendente';
+        const statusCor = status === 'paga' ? [34, 197, 94] : status === 'atrasada' ? [239, 68, 68] : [113, 128, 150];
+        doc.setTextColor(statusCor[0], statusCor[1], statusCor[2]);
+        doc.setFont('helvetica', 'bold');
+        doc.text(status.toUpperCase(), pageWidth - margin - 5, y, { align: 'right' });
+
+        y += 8;
+      });
+
+      y += 5;
+    }
+
+    y = pageHeight - 40;
+
+    doc.setFillColor(249, 250, 251);
+    doc.rect(0, y, pageWidth, 40, 'F');
+
+    y += 10;
+    doc.setTextColor(45, 55, 72);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Obrigado pela sua compra!', pageWidth / 2, y, { align: 'center' });
+
+    y += 7;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(113, 128, 150);
+    doc.text('Sua confiança é muito importante para nós.', pageWidth / 2, y, { align: 'center' });
+    doc.text('Estamos sempre à disposição para melhor atendê-la.', pageWidth / 2, y + 5, { align: 'center' });
+
+    y += 15;
+    doc.setFillColor(212, 175, 55);
+    doc.rect(pageWidth / 2 - 30, y - 2, 60, 0.5, 'F');
+
+    y += 5;
+    doc.setTextColor(212, 175, 55);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(`${nomeLoja} - Semijoias de Qualidade`, pageWidth / 2, y, { align: 'center' });
 
     return doc;
   }
 
-  static imprimirComprovante(dados: DadosComprovante): void {
-    const comprovante = this.gerarComprovanteTexto(dados);
-    const printWindow = window.open('', '_blank', 'width=400,height=600');
+  static gerarComprovanteTexto(dados: DadosComprovante): string {
+    const nomeLoja = dados.nomeLoja || 'SPHERE';
+    const itensTexto = dados.itens
+      .map(item => `  ${item.quantidade}x ${item.descricao}\n     R$ ${item.valor_unitario.toFixed(2)} x ${item.quantidade} = R$ ${item.valor_total.toFixed(2)}`)
+      .join('\n\n');
 
-    if (!printWindow) {
-      alert('Bloqueador de pop-ups ativo. Por favor, permita pop-ups para imprimir.');
-      return;
-    }
+    const parcelasTexto = dados.parcelas && dados.parcelas.length > 1
+      ? `\n\n╔════════════════════════════════════╗\n║          PARCELAS                  ║\n╚════════════════════════════════════╝\n\n${dados.parcelas
+          .map(p => `  ${p.numero}ª Parcela - R$ ${p.valor.toFixed(2)}\n  Vencimento: ${new Date(p.vencimento).toLocaleDateString('pt-BR')}`)
+          .join('\n\n')}`
+      : dados.parcelas && dados.parcelas.length === 1
+      ? '\n\n💳 PAGAMENTO À VISTA'
+      : '';
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Comprovante de Venda</title>
-          <style>
-            @media print {
-              @page {
-                margin: 10mm;
-                size: 80mm auto;
-              }
-              body {
-                margin: 0;
-                padding: 0;
-              }
-            }
-            body {
-              font-family: 'Courier New', Courier, monospace;
-              font-size: 12px;
-              line-height: 1.4;
-              margin: 10px;
-              padding: 0;
-              white-space: pre-wrap;
-              word-wrap: break-word;
-            }
-            .print-button {
-              position: fixed;
-              top: 10px;
-              right: 10px;
-              padding: 10px 20px;
-              background: #d4af37;
-              color: white;
-              border: none;
-              border-radius: 5px;
-              cursor: pointer;
-              font-weight: bold;
-              z-index: 1000;
-            }
-            .print-button:hover {
-              background: #b8941f;
-            }
-            @media print {
-              .print-button {
-                display: none;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <button class="print-button" onclick="window.print()">🖨️ Imprimir</button>
-          ${comprovante}
-        </body>
-      </html>
-    `);
+    return `
+╔════════════════════════════════════╗
+║                                    ║
+║         ⭐ ${nomeLoja} ⭐            ║
+║   Semijoias de Qualidade Premium   ║
+║                                    ║
+╚════════════════════════════════════╝
 
-    printWindow.document.close();
+╔════════════════════════════════════╗
+║      COMPROVANTE DE VENDA          ║
+╚════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 INFORMAÇÕES DA VENDA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Venda: #${dados.vendaId.slice(0, 8).toUpperCase()}
+Data: ${new Date(dados.data).toLocaleDateString('pt-BR', {
+  day: '2-digit',
+  month: 'long',
+  year: 'numeric'
+})}
+Horário: ${new Date(dados.data).toLocaleTimeString('pt-BR', {
+  hour: '2-digit',
+  minute: '2-digit'
+})}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+👤 CLIENTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Nome: ${dados.clienteNome}
+${dados.clienteTelefone ? `Telefone: ${dados.clienteTelefone}` : ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🛍️  PRODUTOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${itensTexto}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💰 RESUMO FINANCEIRO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${dados.desconto > 0 ? `Subtotal: R$ ${dados.subtotal.toFixed(2)}\nDesconto: -R$ ${dados.desconto.toFixed(2)}\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` : ''}TOTAL: R$ ${dados.total.toFixed(2)}
+
+Forma de Pagamento: ${dados.formaPagamento.toUpperCase().replace('_', ' ')}
+${parcelasTexto}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌟 Obrigado pela sua compra! 🌟
+
+Sua confiança é muito importante para nós.
+Estamos sempre à disposição para
+melhor atendê-la.
+
+✨ Volte sempre! ✨
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${nomeLoja} - Semijoias de Qualidade
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    `.trim();
   }
 
   static downloadPDF(dados: DadosComprovante): void {
     const doc = this.gerarPDF(dados);
-    const fileName = `comprovante_${dados.vendaId.slice(0, 8)}_${Date.now()}.pdf`;
+    const fileName = `Comprovante_${dados.vendaId.slice(0, 8)}_${new Date().getTime()}.pdf`;
     doc.save(fileName);
+  }
+
+  static imprimirPDF(dados: DadosComprovante): void {
+    const doc = this.gerarPDF(dados);
+    doc.autoPrint();
+    window.open(doc.output('bloburl'), '_blank');
   }
 
   static enviarWhatsApp(dados: DadosComprovante): void {
