@@ -100,16 +100,55 @@ export default function GarantiasView() {
   }
 
   async function carregarItensDaVenda() {
-    const { data } = await supabase.rpc('buscar_itens_venda_troca', {
-      venda_id_param: vendaSelecionada
-    });
+    const { data, error } = await supabase
+      .from('itens_venda')
+      .select(`
+        id,
+        item_pano_id,
+        quantidade,
+        valor_unitario,
+        valor_total,
+        itens_pano (
+          descricao,
+          categoria,
+          foto_url
+        )
+      `)
+      .eq('venda_id', vendaSelecionada);
 
-    if (data) setItensDaVenda(data);
+    if (data && !error) {
+      setItensDaVenda(data.map((item: any) => ({
+        item_venda_id: item.id,
+        item_pano_id: item.item_pano_id,
+        descricao: item.itens_pano?.descricao || 'Sem descrição',
+        categoria: item.itens_pano?.categoria || '',
+        quantidade: item.quantidade,
+        valor_unitario: item.valor_unitario,
+        valor_total: item.valor_total,
+        foto_url: item.itens_pano?.foto_url
+      })));
+    }
   }
 
   async function carregarItensDisponiveis() {
-    const { data } = await supabase.rpc('buscar_itens_disponiveis_pano');
-    if (data) setItensDisponiveis(data);
+    const { data, error } = await supabase
+      .from('itens_pano')
+      .select('*')
+      .gt('quantidade_disponivel', 0)
+      .order('categoria')
+      .order('descricao');
+
+    if (data && !error) {
+      setItensDisponiveis(data.map((item: any) => ({
+        item_id: item.id,
+        pano_id: item.pano_id,
+        descricao: item.descricao,
+        categoria: item.categoria,
+        valor_unitario: item.valor_unitario,
+        quantidade_disponivel: item.quantidade_disponivel,
+        foto_url: item.foto_url
+      })));
+    }
   }
 
   function calcularDiferenca() {

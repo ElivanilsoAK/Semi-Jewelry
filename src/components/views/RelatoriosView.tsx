@@ -76,20 +76,16 @@ export default function RelatoriosView() {
   async function carregarItensEstoque() {
     if (!user?.id) return;
     setLoading(true);
-    const { data, error } = await supabase.rpc('buscar_todos_itens_estoque');
+    const { data, error } = await supabase
+      .from('itens_pano')
+      .select('*')
+      .order('categoria', { ascending: true });
 
     if (error) {
       console.error('Erro ao carregar estoque:', error);
       alert('Erro ao carregar itens de estoque');
     } else if (data) {
-      setItensEstoque(data.map((item: any) => ({
-        id: item.item_id,
-        descricao: item.descricao,
-        categoria: item.categoria,
-        valor_unitario: item.valor_unitario,
-        quantidade_disponivel: item.quantidade_disponivel,
-        foto_url: item.foto_url
-      })));
+      setItensEstoque(data);
     }
     setLoading(false);
   }
@@ -97,20 +93,20 @@ export default function RelatoriosView() {
   async function carregarVendas() {
     if (!user?.id) return;
     setLoading(true);
-    const { data, error } = await supabase.rpc('buscar_vendas_detalhadas');
+    let query = supabase
+      .from('vendas_detalhadas')
+      .select('*')
+      .order('data_venda', { ascending: false });
 
+    if (dataInicio) query = query.gte('data_venda', dataInicio);
+    if (dataFim) query = query.lte('data_venda', dataFim);
+
+    const { data, error } = await query;
     if (error) {
       console.error('Erro ao carregar vendas:', error);
       alert('Erro ao carregar vendas');
     } else if (data) {
-      let vendasFiltradas = data;
-      if (dataInicio) {
-        vendasFiltradas = vendasFiltradas.filter((v: any) => v.data_venda >= dataInicio);
-      }
-      if (dataFim) {
-        vendasFiltradas = vendasFiltradas.filter((v: any) => v.data_venda <= dataFim);
-      }
-      setVendas(vendasFiltradas.map((v: any) => ({
+      setVendas(data.map((v: any) => ({
         id: v.id,
         data_venda: v.data_venda,
         valor_total: v.valor_total,

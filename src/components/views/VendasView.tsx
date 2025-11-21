@@ -55,7 +55,10 @@ export default function VendasView() {
 
   const loadVendas = async () => {
     try {
-      const { data, error } = await supabase.rpc('buscar_vendas_detalhadas');
+      const { data, error } = await supabase
+        .from('vendas_detalhadas')
+        .select('*')
+        .order('data_venda', { ascending: false });
 
       if (error) throw error;
       setVendas(data || []);
