@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Shield, Plus, Search, RefreshCw, Check, X } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { Shield, Plus, Search, RefreshCw, Check, X, ArrowRight, DollarSign } from 'lucide-react';
+import { supabase, withUserId } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface Garantia {
@@ -11,19 +11,11 @@ interface Garantia {
   tipo: 'troca' | 'devolucao';
   motivo: string;
   status: 'pendente' | 'aprovada' | 'concluida' | 'rejeitada';
+  diferenca_valor: number;
+  forma_pagamento_diferenca: string | null;
+  valor_item_antigo: number;
+  valor_item_novo: number;
   created_at: string;
-  venda?: {
-    cliente_nome: string;
-    data_venda: string;
-  };
-  item_original?: {
-    descricao: string;
-    valor_unitario: number;
-  };
-  item_novo?: {
-    descricao: string;
-    valor_unitario: number;
-  };
 }
 
 export default function GarantiasView() {
@@ -32,234 +24,227 @@ export default function GarantiasView() {
   const [showNovaGarantia, setShowNovaGarantia] = useState(false);
   const [loading, setLoading] = useState(false);
   const [busca, setBusca] = useState('');
-  const [filtroStatus, setFiltroStatus] = useState<string>('todos');
 
+  // Passo 1: Buscar cliente
+  const [clientes, setClientes] = useState<any[]>([]);
+  const [clienteSelecionado, setClienteSelecionado] = useState<string>('');
+
+  // Passo 2: Buscar vendas do cliente
   const [vendas, setVendas] = useState<any[]>([]);
   const [vendaSelecionada, setVendaSelecionada] = useState<string>('');
+
+  // Passo 3: Selecionar item antigo da venda
   const [itensDaVenda, setItensDaVenda] = useState<any[]>([]);
-  const [itemOriginalId, setItemOriginalId] = useState<string>('');
-  const [itemNovoId, setItemNovoId] = useState<string>('');
+  const [itemAntigoSelecionado, setItemAntigoSelecionado] = useState<any>(null);
+
+  // Passo 4: Selecionar item novo do pano (para troca)
+  const [itensDisponiveis, setItensDisponiveis] = useState<any[]>([]);
+  const [itemNovoSelecionado, setItemNovoSelecionado] = useState<any>(null);
+
+  // Passo 5: Dados da garantia
   const [tipo, setTipo] = useState<'troca' | 'devolucao'>('troca');
   const [motivo, setMotivo] = useState('');
+  const [diferencaValor, setDiferencaValor] = useState(0);
+  const [formaPagamentoDiferenca, setFormaPagamentoDiferenca] = useState<string>('');
 
   useEffect(() => {
     carregarGarantias();
-    carregarVendas();
-  }, []);
+    carregarClientes();
+    if (tipo === 'troca') {
+      carregarItensDisponiveis();
+    }
+  }, [tipo]);
+
+  useEffect(() => {
+    if (clienteSelecionado) {
+      carregarVendasCliente();
+    }
+  }, [clienteSelecionado]);
 
   useEffect(() => {
     if (vendaSelecionada) {
-      carregarItensDaVenda(vendaSelecionada);
+      carregarItensDaVenda();
     }
   }, [vendaSelecionada]);
 
+  useEffect(() => {
+    calcularDiferenca();
+  }, [itemAntigoSelecionado, itemNovoSelecionado]);
+
   async function carregarGarantias() {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('garantias')
-      .select(`
-        *,
-        venda:vendas!garantias_venda_id_fkey(cliente_nome, data_venda),
-        item_original:itens_venda!garantias_item_original_id_fkey(descricao, valor_unitario),
-        item_novo:itens_venda!garantias_item_novo_id_fkey(descricao, valor_unitario)
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      setGarantias(data);
-    }
+    if (data) setGarantias(data);
   }
 
-  async function carregarVendas() {
-    const { data, error } = await supabase.rpc('buscar_vendas_para_garantia', {
-      busca: busca || null,
-      limite: 50
-    });
+  async function carregarClientes() {
+    const { data } = await supabase
+      .from('clientes')
+      .select('id, nome, telefone')
+      .order('nome');
 
-    if (!error && data) {
-      setVendas(data);
-    }
+    if (data) setClientes(data);
   }
 
-  async function carregarItensDaVenda(vendaId: string) {
-    const { data, error } = await supabase.rpc('buscar_itens_venda_troca', {
-      venda_id_param: vendaId
+  async function carregarVendasCliente() {
+    const { data } = await supabase.rpc('buscar_vendas_para_garantia', {
+      cliente_id_param: clienteSelecionado,
+      busca: null,
+      limite: 100
     });
 
-    if (!error && data) {
-      setItensDaVenda(data);
+    if (data) setVendas(data);
+  }
+
+  async function carregarItensDaVenda() {
+    const { data } = await supabase.rpc('buscar_itens_venda_troca', {
+      venda_id_param: vendaSelecionada
+    });
+
+    if (data) setItensDaVenda(data);
+  }
+
+  async function carregarItensDisponiveis() {
+    const { data } = await supabase.rpc('buscar_itens_disponiveis_pano');
+    if (data) setItensDisponiveis(data);
+  }
+
+  function calcularDiferenca() {
+    if (!itemAntigoSelecionado) {
+      setDiferencaValor(0);
+      return;
     }
+
+    const valorAntigo = itemAntigoSelecionado.valor_unitario || 0;
+    const valorNovo = itemNovoSelecionado?.valor_unitario || 0;
+    const diferenca = valorNovo - valorAntigo;
+    setDiferencaValor(diferenca);
   }
 
   async function criarGarantia() {
-    if (!vendaSelecionada || !itemOriginalId || !motivo.trim()) {
-      alert('Preencha todos os campos obrigatórios');
+    if (!vendaSelecionada || !itemAntigoSelecionado || !motivo.trim()) {
+      alert('❌ Preencha todos os campos obrigatórios');
+      return;
+    }
+
+    if (tipo === 'troca' && !itemNovoSelecionado) {
+      alert('❌ Selecione o item novo para troca');
+      return;
+    }
+
+    if (diferencaValor > 0 && !formaPagamentoDiferenca) {
+      alert('❌ Informe a forma de pagamento da diferença');
       return;
     }
 
     setLoading(true);
-    const { error } = await supabase
-      .from('garantias')
-      .insert({
+
+    try {
+      const garantiaData = await withUserId({
         venda_id: vendaSelecionada,
-        item_original_id: itemOriginalId,
-        item_novo_id: tipo === 'troca' && itemNovoId ? itemNovoId : null,
+        item_original_id: itemAntigoSelecionado.item_venda_id,
+        item_novo_id: tipo === 'troca' && itemNovoSelecionado ? itemNovoSelecionado.item_id : null,
         tipo,
         motivo,
-        status: 'pendente'
+        status: 'pendente',
+        diferenca_valor: Math.abs(diferencaValor),
+        forma_pagamento_diferenca: diferencaValor > 0 ? formaPagamentoDiferenca : null,
+        valor_item_antigo: itemAntigoSelecionado.valor_unitario,
+        valor_item_novo: itemNovoSelecionado?.valor_unitario || 0
       });
 
-    if (!error) {
+      const { error } = await supabase.from('garantias').insert(garantiaData);
+
+      if (error) throw error;
+
+      alert('✅ Garantia criada com sucesso!');
       setShowNovaGarantia(false);
       resetForm();
       carregarGarantias();
+    } catch (error) {
+      console.error('Erro:', error);
+      alert('❌ Erro ao criar garantia');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   function resetForm() {
+    setClienteSelecionado('');
     setVendaSelecionada('');
-    setItemOriginalId('');
-    setItemNovoId('');
+    setItemAntigoSelecionado(null);
+    setItemNovoSelecionado(null);
     setTipo('troca');
     setMotivo('');
+    setDiferencaValor(0);
+    setFormaPagamentoDiferenca('');
+    setVendas([]);
+    setItensDaVenda([]);
   }
 
-  async function atualizarStatus(garantiaId: string, novoStatus: string) {
-    await supabase
-      .from('garantias')
-      .update({ status: novoStatus })
-      .eq('id', garantiaId);
-
-    carregarGarantias();
-  }
-
-  const garantiasFiltradas = garantias.filter((g) => {
-    const matchBusca = g.venda?.cliente_nome.toLowerCase().includes(busca.toLowerCase()) ||
-      g.item_original?.descricao.toLowerCase().includes(busca.toLowerCase());
-    const matchStatus = filtroStatus === 'todos' || g.status === filtroStatus;
-    return matchBusca && matchStatus;
-  });
-
-  const statusColors = {
-    pendente: 'bg-yellow-100 text-yellow-700',
-    aprovada: 'bg-blue-100 text-blue-700',
-    concluida: 'bg-green-100 text-green-700',
-    rejeitada: 'bg-red-100 text-red-700',
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
   };
 
-  const tipoLabels = {
-    troca: 'Troca',
-    devolucao: 'Devolução',
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('pt-BR');
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl">
+          <div className="p-3 bg-gradient-to-br from-gold-ak to-amber-warning rounded-xl">
             <Shield className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Garantias</h2>
-            <p className="text-sm text-gray-600">Gerencie trocas e garantias de produtos</p>
+            <h1 className="text-2xl font-bold text-charcoal">Garantias</h1>
+            <p className="text-sm text-gray-600">Gestão de trocas e devoluções (2 anos)</p>
           </div>
         </div>
-        <button onClick={() => setShowNovaGarantia(true)} className="btn-primary">
-          <Plus className="w-4 h-4 mr-2" />
+        <button
+          onClick={() => setShowNovaGarantia(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gold-ak to-amber-warning text-white rounded-lg hover:shadow-lg transition-all font-medium"
+        >
+          <Plus className="w-5 h-5" />
           Nova Garantia
         </button>
       </div>
 
-      <div className="card">
-        <div className="flex flex-col md:flex-row gap-4 mb-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Buscar por cliente ou item..."
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              className="input-field pl-10"
-            />
-          </div>
-          <select
-            value={filtroStatus}
-            onChange={(e) => setFiltroStatus(e.target.value)}
-            className="input-field md:w-48"
-          >
-            <option value="todos">Todos os Status</option>
-            <option value="pendente">Pendente</option>
-            <option value="aprovada">Aprovada</option>
-            <option value="concluida">Concluída</option>
-            <option value="rejeitada">Rejeitada</option>
-          </select>
-        </div>
-
-        {garantiasFiltradas.length === 0 ? (
-          <div className="text-center py-12">
-            <Shield className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <p className="text-gray-500">Nenhuma garantia registrada</p>
-          </div>
+      {/* Lista de Garantias */}
+      <div className="bg-white rounded-xl shadow-sm border border-line p-6">
+        <h3 className="font-bold text-charcoal mb-4">Garantias Registradas</h3>
+        {garantias.length === 0 ? (
+          <p className="text-gray-500 text-center py-8">Nenhuma garantia registrada</p>
         ) : (
           <div className="space-y-3">
-            {garantiasFiltradas.map((garantia) => (
-              <div
-                key={garantia.id}
-                className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[garantia.status]}`}>
-                        {garantia.status.charAt(0).toUpperCase() + garantia.status.slice(1)}
-                      </span>
-                      <span className="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-xs font-medium">
-                        {tipoLabels[garantia.tipo]}
-                      </span>
-                    </div>
-                    <p className="font-medium text-gray-900">{garantia.venda?.cliente_nome}</p>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Item: {garantia.item_original?.descricao}
-                    </p>
-                    {garantia.tipo === 'troca' && garantia.item_novo && (
-                      <p className="text-sm text-gray-600">
-                        → Trocar por: {garantia.item_novo.descricao}
+            {garantias.map((g) => (
+              <div key={g.id} className="border border-line rounded-lg p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-bold text-charcoal">{g.tipo === 'troca' ? '🔄 Troca' : '↩️ Devolução'}</p>
+                    <p className="text-sm text-gray-600 mt-1">{g.motivo}</p>
+                    <p className="text-xs text-gray-500 mt-2">Criada em: {formatDate(g.created_at)}</p>
+                    {g.diferenca_valor > 0 && (
+                      <p className="text-sm text-gold-ak mt-1">
+                        Diferença: {formatCurrency(g.diferenca_valor)} - {g.forma_pagamento_diferenca?.toUpperCase()}
                       </p>
                     )}
-                    <p className="text-sm text-gray-500 mt-2">
-                      Motivo: {garantia.motivo}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {new Date(garantia.created_at).toLocaleDateString('pt-BR')}
-                    </p>
                   </div>
-                  {garantia.status === 'pendente' && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => atualizarStatus(garantia.id, 'aprovada')}
-                        className="btn-secondary text-green-600 hover:bg-green-50"
-                      >
-                        <Check className="w-4 h-4 mr-1" />
-                        Aprovar
-                      </button>
-                      <button
-                        onClick={() => atualizarStatus(garantia.id, 'rejeitada')}
-                        className="btn-secondary text-red-600 hover:bg-red-50"
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Rejeitar
-                      </button>
-                    </div>
-                  )}
-                  {garantia.status === 'aprovada' && (
-                    <button
-                      onClick={() => atualizarStatus(garantia.id, 'concluida')}
-                      className="btn-primary"
-                    >
-                      <Check className="w-4 h-4 mr-1" />
-                      Concluir
-                    </button>
-                  )}
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    g.status === 'pendente' ? 'bg-yellow-100 text-yellow-700' :
+                    g.status === 'aprovada' ? 'bg-blue-100 text-blue-700' :
+                    g.status === 'concluida' ? 'bg-green-100 text-green-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {g.status.toUpperCase()}
+                  </span>
                 </div>
               </div>
             ))}
@@ -267,123 +252,200 @@ export default function GarantiasView() {
         )}
       </div>
 
+      {/* Modal Nova Garantia */}
       {showNovaGarantia && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900">Nova Garantia</h3>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Venda Original
-                </label>
-                <select
-                  value={vendaSelecionada}
-                  onChange={(e) => setVendaSelecionada(e.target.value)}
-                  className="input-field"
-                >
-                  <option value="">Selecione uma venda</option>
-                  {vendas.map((venda) => (
-                    <option key={venda.id} value={venda.id}>
-                      {venda.cliente_nome} - {new Date(venda.data_venda).toLocaleDateString('pt-BR')}
-                    </option>
-                  ))}
-                </select>
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-line bg-gradient-to-r from-gold-ak to-amber-warning">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold text-white">Nova Garantia</h2>
+                <button onClick={() => { setShowNovaGarantia(false); resetForm(); }} className="text-white hover:bg-white/20 p-2 rounded-lg">
+                  <X className="w-6 h-6" />
+                </button>
               </div>
+            </div>
 
-              {vendaSelecionada && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Item Original
-                  </label>
-                  <select
-                    value={itemOriginalId}
-                    onChange={(e) => setItemOriginalId(e.target.value)}
-                    className="input-field"
-                  >
-                    <option value="">Selecione o item</option>
-                    {itensDaVenda.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.descricao} - R$ {item.valor_unitario.toFixed(2)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
+            <div className="p-6 space-y-6">
+              {/* Tipo de Garantia */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tipo de Garantia
-                </label>
-                <div className="grid grid-cols-3 gap-2">
+                <label className="block text-sm font-bold text-charcoal mb-2">Tipo de Garantia *</label>
+                <div className="grid grid-cols-2 gap-3">
                   {(['troca', 'devolucao'] as const).map((t) => (
                     <button
                       key={t}
                       onClick={() => setTipo(t)}
-                      className={`p-3 rounded-lg border-2 transition-all ${
+                      className={`p-3 rounded-lg border-2 transition-all font-medium ${
                         tipo === t
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-gold-ak bg-gold-ak/10 text-gold-ak'
+                          : 'border-line hover:border-gold-ak/50'
                       }`}
                     >
-                      {tipoLabels[t]}
+                      {t === 'troca' ? '🔄 Troca' : '↩️ Devolução'}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {tipo === 'troca' && vendaSelecionada && (
+              {/* Passo 1: Cliente */}
+              <div>
+                <label className="block text-sm font-bold text-charcoal mb-2">1️⃣ Cliente *</label>
+                <select
+                  value={clienteSelecionado}
+                  onChange={(e) => {
+                    setClienteSelecionado(e.target.value);
+                    setVendaSelecionada('');
+                    setItemAntigoSelecionado(null);
+                  }}
+                  className="w-full px-4 py-3 border-2 border-line rounded-lg focus:ring-2 focus:ring-gold-ak focus:border-transparent font-medium"
+                >
+                  <option value="">Selecione o cliente</option>
+                  {clientes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome} {c.telefone ? `- ${c.telefone}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Passo 2: Venda */}
+              {clienteSelecionado && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Item Novo (Opcional)
-                  </label>
+                  <label className="block text-sm font-bold text-charcoal mb-2">2️⃣ Venda (últimos 2 anos) *</label>
                   <select
-                    value={itemNovoId}
-                    onChange={(e) => setItemNovoId(e.target.value)}
-                    className="input-field"
+                    value={vendaSelecionada}
+                    onChange={(e) => {
+                      setVendaSelecionada(e.target.value);
+                      setItemAntigoSelecionado(null);
+                    }}
+                    className="w-full px-4 py-3 border-2 border-line rounded-lg focus:ring-2 focus:ring-gold-ak focus:border-transparent font-medium"
                   >
-                    <option value="">Selecione o novo item</option>
-                    {itensDaVenda.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.descricao} - R$ {item.valor_unitario.toFixed(2)}
+                    <option value="">Selecione a venda</option>
+                    {vendas.map((v) => (
+                      <option key={v.venda_id} value={v.venda_id}>
+                        {formatDate(v.data_venda)} - {formatCurrency(v.valor_total)} - {v.itens_count} {v.itens_count === 1 ? 'item' : 'itens'}
                       </option>
                     ))}
                   </select>
                 </div>
               )}
 
+              {/* Passo 3: Item Antigo */}
+              {vendaSelecionada && (
+                <div>
+                  <label className="block text-sm font-bold text-charcoal mb-2">3️⃣ Item da Venda (antigo) *</label>
+                  <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto border border-line rounded-lg p-3">
+                    {itensDaVenda.map((item) => (
+                      <button
+                        key={item.item_venda_id}
+                        onClick={() => setItemAntigoSelecionado(item)}
+                        className={`p-3 rounded-lg border-2 text-left transition-all ${
+                          itemAntigoSelecionado?.item_venda_id === item.item_venda_id
+                            ? 'border-gold-ak bg-gold-ak/10'
+                            : 'border-line hover:border-gold-ak/50'
+                        }`}
+                      >
+                        <p className="font-bold text-charcoal">{item.descricao}</p>
+                        <p className="text-sm text-gray-600">
+                          {item.categoria} - Qtd: {item.quantidade} - {formatCurrency(item.valor_unitario)} cada
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Passo 4: Item Novo (apenas para troca) */}
+              {tipo === 'troca' && itemAntigoSelecionado && (
+                <div>
+                  <label className="block text-sm font-bold text-charcoal mb-2">4️⃣ Item Novo do Pano (para troca) *</label>
+                  <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto border border-line rounded-lg p-3">
+                    {itensDisponiveis.map((item) => (
+                      <button
+                        key={item.item_id}
+                        onClick={() => setItemNovoSelecionado(item)}
+                        className={`p-3 rounded-lg border-2 text-left transition-all ${
+                          itemNovoSelecionado?.item_id === item.item_id
+                            ? 'border-green-600 bg-green-50'
+                            : 'border-line hover:border-green-400'
+                        }`}
+                      >
+                        <p className="font-bold text-charcoal">{item.descricao}</p>
+                        <p className="text-sm text-gray-600">
+                          {item.categoria} - Disponível: {item.quantidade_disponivel} - {formatCurrency(item.valor_unitario)}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Diferença de Valor */}
+              {itemAntigoSelecionado && itemNovoSelecionado && diferencaValor !== 0 && (
+                <div className={`p-4 rounded-lg border-2 ${diferencaValor > 0 ? 'border-red-300 bg-red-50' : 'border-green-300 bg-green-50'}`}>
+                  <h4 className="font-bold text-charcoal mb-2">
+                    {diferencaValor > 0 ? '⚠️ Diferença a Pagar' : '✅ Diferença a Favor'}
+                  </h4>
+                  <div className="flex justify-between items-center mb-3">
+                    <span>Item Antigo:</span>
+                    <span className="font-bold">{formatCurrency(itemAntigoSelecionado.valor_unitario)}</span>
+                  </div>
+                  <div className="flex justify-between items-center mb-3">
+                    <span>Item Novo:</span>
+                    <span className="font-bold">{formatCurrency(itemNovoSelecionado.valor_unitario)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-3 border-t border-current">
+                    <span className="font-bold">Diferença:</span>
+                    <span className="font-bold text-lg">{formatCurrency(Math.abs(diferencaValor))}</span>
+                  </div>
+
+                  {diferencaValor > 0 && (
+                    <div className="mt-4">
+                      <label className="block text-sm font-bold text-charcoal mb-2">Forma de Pagamento da Diferença *</label>
+                      <select
+                        value={formaPagamentoDiferenca}
+                        onChange={(e) => setFormaPagamentoDiferenca(e.target.value)}
+                        className="w-full px-4 py-3 border-2 border-line rounded-lg focus:ring-2 focus:ring-gold-ak focus:border-transparent font-medium"
+                      >
+                        <option value="">Selecione a forma de pagamento</option>
+                        <option value="dinheiro">Dinheiro</option>
+                        <option value="pix">PIX</option>
+                        <option value="cartao_credito">Cartão de Crédito</option>
+                        <option value="cartao_debito">Cartão de Débito</option>
+                        <option value="negociacao">Negociação</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Motivo */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Motivo
-                </label>
+                <label className="block text-sm font-bold text-charcoal mb-2">Motivo *</label>
                 <textarea
                   value={motivo}
                   onChange={(e) => setMotivo(e.target.value)}
                   placeholder="Descreva o motivo da garantia..."
-                  className="input-field"
+                  className="w-full px-4 py-3 border-2 border-line rounded-lg focus:ring-2 focus:ring-gold-ak focus:border-transparent"
                   rows={3}
                 />
               </div>
-            </div>
-            <div className="p-6 border-t border-gray-200 flex gap-3">
-              <button
-                onClick={() => {
-                  setShowNovaGarantia(false);
-                  resetForm();
-                }}
-                className="btn-secondary flex-1"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={criarGarantia}
-                disabled={loading}
-                className="btn-primary flex-1"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Criar Garantia
-              </button>
+
+              {/* Botões */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setShowNovaGarantia(false); resetForm(); }}
+                  className="flex-1 px-4 py-3 border-2 border-line text-charcoal rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={criarGarantia}
+                  disabled={loading}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-gold-ak to-amber-warning text-white rounded-lg hover:shadow-lg transition-all font-medium disabled:opacity-50"
+                >
+                  {loading ? 'Criando...' : 'Criar Garantia'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
