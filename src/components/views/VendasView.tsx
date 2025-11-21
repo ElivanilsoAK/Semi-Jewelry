@@ -82,9 +82,7 @@ export default function VendasView() {
   const filteredVendas = vendas.filter((venda) => {
     const matchesSearch =
       venda.cliente_nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      venda.itens_vendidos?.some((item: any) =>
-        item.nome?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      venda.id?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = filterStatus === 'todos' || venda.status_pagamento === filterStatus;
     const matchesVendaStatus = filterVendaStatus === 'todos' || venda.status_venda === filterVendaStatus;

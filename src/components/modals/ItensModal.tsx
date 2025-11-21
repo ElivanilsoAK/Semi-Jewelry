@@ -78,6 +78,22 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validações
+    if (!formData.descricao.trim()) {
+      alert('Descrição é obrigatória');
+      return;
+    }
+
+    if (formData.valor_unitario <= 0) {
+      alert('Valor unitário deve ser maior que zero');
+      return;
+    }
+
+    if (!editingItem && formData.quantidade_inicial <= 0) {
+      alert('Quantidade deve ser maior que zero');
+      return;
+    }
+
     try {
       if (editingItem) {
         const { error } = await supabase
@@ -89,7 +105,12 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
           })
           .eq('id', editingItem.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Erro ao atualizar item:', error);
+          throw error;
+        }
+
+        alert('✅ Item atualizado com sucesso!');
       } else {
         const dataWithUserId = await withUserId({
           pano_id: pano.id,
@@ -99,18 +120,33 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
           quantidade_disponivel: formData.quantidade_inicial,
           valor_unitario: formData.valor_unitario,
         });
-        const { error } = await supabase
-          .from('itens_pano')
-          .insert([dataWithUserId]);
 
-        if (error) throw error;
+        console.log('Dados para inserir:', dataWithUserId);
+
+        const { data, error } = await supabase
+          .from('itens_pano')
+          .insert([dataWithUserId])
+          .select();
+
+        if (error) {
+          console.error('Erro detalhado ao inserir item:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          });
+          throw error;
+        }
+
+        console.log('Item inserido com sucesso:', data);
+        alert('✅ Item adicionado com sucesso!');
       }
 
       resetForm();
-      loadItens();
-    } catch (error) {
+      await loadItens();
+    } catch (error: any) {
       console.error('Erro ao salvar item:', error);
-      alert('Erro ao salvar item');
+      alert(`❌ Erro ao salvar item:\n\n${error.message || 'Erro desconhecido'}\n\nVerifique o console para mais detalhes.`);
     }
   };
 

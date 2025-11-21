@@ -138,7 +138,9 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
 
       let currentVendasQuery = supabase.from('vendas').select('*');
       let previousVendasQuery = supabase.from('vendas').select('*');
-      let itensVendidosQuery = supabase.from('vendas').select('itens_vendidos');
+      let itensVendidosQuery = supabase
+        .from('itens_venda')
+        .select('quantidade, venda_id, itens_pano!inner(descricao)');
 
       if (!isAll) {
         currentVendasQuery = currentVendasQuery
@@ -149,9 +151,17 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
           .gte('data_venda', previousStart.toISOString())
           .lte('data_venda', previousEnd.toISOString());
 
-        itensVendidosQuery = itensVendidosQuery
+        // Buscar itens de vendas no período atual
+        const vendasIdsQuery = await supabase
+          .from('vendas')
+          .select('id')
           .gte('data_venda', currentStart.toISOString())
           .lte('data_venda', currentEnd.toISOString());
+
+        if (vendasIdsQuery.data && vendasIdsQuery.data.length > 0) {
+          const vendasIds = vendasIdsQuery.data.map(v => v.id);
+          itensVendidosQuery = itensVendidosQuery.in('venda_id', vendasIds);
+        }
       }
 
       const [
@@ -189,13 +199,10 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
       const previousTicketMedio = previousVendas.data?.length ? previousValorTotal / previousVendas.data.length : 0;
 
       const produtosMap = new Map<string, number>();
-      itensVendidos.data?.forEach(venda => {
-        if (venda.itens_vendidos && Array.isArray(venda.itens_vendidos)) {
-          venda.itens_vendidos.forEach((item: any) => {
-            const nome = item.nome || 'Sem nome';
-            produtosMap.set(nome, (produtosMap.get(nome) || 0) + (item.quantidade || 1));
-          });
-        }
+      itensVendidos.data?.forEach((item: any) => {
+        const nome = item.itens_pano?.descricao || 'Sem nome';
+        const quantidade = item.quantidade || 1;
+        produtosMap.set(nome, (produtosMap.get(nome) || 0) + quantidade);
       });
 
       const produtosMaisVendidos = Array.from(produtosMap.entries())
