@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase, withUserId } from '../../lib/supabase';
 import {
   X, Search, Plus, Minus, Trash2, ShoppingCart, CreditCard,
-  Percent, DollarSign, Printer, Send, TrendingUp, Image as ImageIcon
+  Percent, DollarSign, Printer, Send, TrendingUp, Image as ImageIcon, Download, Copy
 } from 'lucide-react';
+import { ComprovanteService } from '../../services/comprovanteService';
 
 interface Cliente {
   id: string;
@@ -161,94 +162,55 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
     return calcularSubtotal() - calcularDesconto();
   };
 
-  const gerarComprovante = (venda: any) => {
+  const prepararDadosComprovante = (venda: any, pagamentosVenda: any[]) => {
     const cliente = clientes.find(c => c.id === selectedCliente);
     const subtotal = calcularSubtotal();
     const valorDesconto = calcularDesconto();
     const total = calcularTotal();
 
-    const itensTexto = carrinho.map(item => {
+    const itensComprovante = carrinho.map(item => {
       const produto = items.find(i => i.id === item.itemId);
-      return `${item.quantidade}x ${produto?.descricao} - R$ ${((produto?.valor_unitario || 0) * item.quantidade).toFixed(2)}`;
-    }).join('\n');
+      return {
+        descricao: produto?.descricao || '',
+        quantidade: item.quantidade,
+        valor_unitario: produto?.valor_unitario || 0,
+        valor_total: (produto?.valor_unitario || 0) * item.quantidade
+      };
+    });
 
-    const comprovante = `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      SPHERE - COMPROVANTE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const parcelasComprovante = pagamentosVenda.map((p, index) => ({
+      numero: index + 1,
+      valor: p.valor_parcela,
+      vencimento: p.data_vencimento
+    }));
 
-Cliente: ${cliente?.nome}
-${cliente?.telefone ? `Telefone: ${cliente.telefone}` : ''}
-
-Data: ${new Date().toLocaleDateString('pt-BR')}
-Venda: #${venda.id.slice(0, 8)}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-           ITENS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-${itensTexto}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Subtotal: R$ ${subtotal.toFixed(2)}
-${valorDesconto > 0 ? `Desconto: -R$ ${valorDesconto.toFixed(2)}` : ''}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TOTAL: R$ ${total.toFixed(2)}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Forma: ${formaPagamento.toUpperCase()}
-${tipoVenda === 'parcelado' ? `${numeroParcelas}x de R$ ${(total / numeroParcelas).toFixed(2)}` : 'À VISTA'}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Obrigado pela preferência!
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    `;
-
-    return comprovante;
+    return {
+      vendaId: venda.id,
+      clienteNome: cliente?.nome || '',
+      clienteTelefone: cliente?.telefone,
+      data: venda.created_at || new Date().toISOString(),
+      itens: itensComprovante,
+      subtotal,
+      desconto: valorDesconto,
+      total,
+      formaPagamento: formaPagamento,
+      parcelas: parcelasComprovante
+    };
   };
 
-  const handleImprimir = (venda: any) => {
-    const comprovante = gerarComprovante(venda);
-    const printWindow = window.open('', '', 'width=300,height=600');
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Comprovante de Venda</title>
-            <style>
-              body {
-                font-family: 'Courier New', monospace;
-                margin: 20px;
-                white-space: pre-wrap;
-              }
-            </style>
-          </head>
-          <body>
-            ${comprovante}
-            <script>
-              window.print();
-              window.close();
-            </script>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-    }
+  const handleImprimir = (venda: any, pagamentosVenda: any[]) => {
+    const dados = prepararDadosComprovante(venda, pagamentosVenda);
+    ComprovanteService.imprimirComprovante(dados);
   };
 
-  const handleEnviarWhatsApp = (venda: any) => {
-    const cliente = clientes.find(c => c.id === selectedCliente);
-    if (!cliente?.telefone) {
-      alert('Cliente não possui telefone cadastrado');
-      return;
-    }
+  const handleDownloadPDF = (venda: any, pagamentosVenda: any[]) => {
+    const dados = prepararDadosComprovante(venda, pagamentosVenda);
+    ComprovanteService.downloadPDF(dados);
+  };
 
-    const comprovante = gerarComprovante(venda);
-    const mensagem = encodeURIComponent(comprovante);
-    const numero = cliente.telefone.replace(/\D/g, '');
-    const url = `https://wa.me/55${numero}?text=${mensagem}`;
-    window.open(url, '_blank');
+  const handleEnviarWhatsApp = (venda: any, pagamentosVenda: any[]) => {
+    const dados = prepararDadosComprovante(venda, pagamentosVenda);
+    ComprovanteService.enviarWhatsApp(dados);
   };
 
   const handleSubmit = async () => {
@@ -364,14 +326,21 @@ Obrigado pela preferência!
           .eq('id', item.itemId);
       }
 
-      const acao = confirm('Venda realizada com sucesso!\n\nDeseja imprimir o comprovante?');
+      alert('✅ Venda realizada com sucesso!');
+
+      const acao = confirm('📄 Deseja imprimir o comprovante?');
       if (acao) {
-        handleImprimir(venda);
+        handleImprimir(venda, pagamentos);
       }
 
-      const enviar = confirm('Deseja enviar o comprovante por WhatsApp?');
+      const downloadPdf = confirm('💾 Deseja baixar o comprovante em PDF?');
+      if (downloadPdf) {
+        handleDownloadPDF(venda, pagamentos);
+      }
+
+      const enviar = confirm('📱 Deseja enviar o comprovante por WhatsApp?');
       if (enviar) {
-        handleEnviarWhatsApp(venda);
+        handleEnviarWhatsApp(venda, pagamentos);
       }
 
       onClose();

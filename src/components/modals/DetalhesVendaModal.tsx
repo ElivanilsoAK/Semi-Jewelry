@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase, Venda, Cliente, ItemVenda, ItemPano, Pagamento } from '../../lib/supabase';
-import { X, CheckCircle } from 'lucide-react';
+import { X, CheckCircle, Printer, Download, Send } from 'lucide-react';
+import { ComprovanteService } from '../../services/comprovanteService';
 
 interface VendaComCliente extends Venda {
   cliente: Cliente;
@@ -103,6 +104,49 @@ export default function DetalhesVendaModal({ venda, onClose }: DetalhesVendaModa
     return status === 'pago' ? 'text-green-600' : 'text-red-600';
   };
 
+  const prepararDadosComprovante = () => {
+    const itensComprovante = itensVenda.map(item => ({
+      descricao: item.item_pano?.descricao || item.descricao,
+      quantidade: item.quantidade,
+      valor_unitario: item.valor_unitario,
+      valor_total: item.valor_total
+    }));
+
+    const parcelasComprovante = pagamentos.map(p => ({
+      numero: p.numero_parcela,
+      valor: p.valor_parcela,
+      vencimento: p.data_vencimento
+    }));
+
+    return {
+      vendaId: venda.id,
+      clienteNome: venda.cliente.nome,
+      clienteTelefone: venda.cliente.telefone || undefined,
+      data: venda.data_venda,
+      itens: itensComprovante,
+      subtotal: Number(venda.valor_total) + Number(venda.desconto || 0),
+      desconto: Number(venda.desconto || 0),
+      total: Number(venda.valor_total),
+      formaPagamento: venda.forma_pagamento,
+      parcelas: parcelasComprovante
+    };
+  };
+
+  const handleImprimir = () => {
+    const dados = prepararDadosComprovante();
+    ComprovanteService.imprimirComprovante(dados);
+  };
+
+  const handleDownloadPDF = () => {
+    const dados = prepararDadosComprovante();
+    ComprovanteService.downloadPDF(dados);
+  };
+
+  const handleEnviarWhatsApp = () => {
+    const dados = prepararDadosComprovante();
+    ComprovanteService.enviarWhatsApp(dados);
+  };
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -116,11 +160,35 @@ export default function DetalhesVendaModal({ venda, onClose }: DetalhesVendaModa
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-gray-800">Detalhes da Venda</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+        <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-gold-ak to-amber-warning">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-white">Detalhes da Venda</h2>
+            <button onClick={onClose} className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors">
               <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={handleImprimir}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-gold-ak rounded-lg hover:bg-silk transition-all font-medium shadow-md"
+            >
+              <Printer className="w-4 h-4" />
+              Imprimir
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-gold-ak rounded-lg hover:bg-silk transition-all font-medium shadow-md"
+            >
+              <Download className="w-4 h-4" />
+              Baixar PDF
+            </button>
+            <button
+              onClick={handleEnviarWhatsApp}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-medium shadow-md"
+            >
+              <Send className="w-4 h-4" />
+              Enviar WhatsApp
             </button>
           </div>
         </div>
