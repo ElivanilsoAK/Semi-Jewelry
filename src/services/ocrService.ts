@@ -37,13 +37,6 @@ const CATEGORIAS_MAP: { [key: string]: string } = {
   'brinco m': 'Brincos M',
   'argola': 'Argolas',
   'argolas': 'Argolas',
-  'tornozeleira': 'Tornozeleiras',
-  'tornozeleiras': 'Tornozeleiras',
-  'conjunto': 'Conjuntos',
-  'conjuntos': 'Conjuntos',
-  'infantil': 'Infantil',
-  'colar': 'Colares',
-  'colares': 'Colares',
 };
 
 // Detecta categorias no cabeçalho (aceita variações)
