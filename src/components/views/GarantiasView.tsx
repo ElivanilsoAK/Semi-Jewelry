@@ -183,12 +183,13 @@ export default function GarantiasView() {
 
     try {
       const garantiaData = await withUserId({
-        venda_id: vendaSelecionada,
+        venda_original_id: vendaSelecionada,
         item_original_id: itemAntigoSelecionado.item_venda_id,
         item_novo_id: tipo === 'troca' && itemNovoSelecionado ? itemNovoSelecionado.item_id : null,
         tipo,
         motivo,
         status: 'pendente',
+        data_solicitacao: new Date().toISOString().split('T')[0],
         diferenca_valor: Math.abs(diferencaValor),
         forma_pagamento_diferenca: diferencaValor > 0 ? formaPagamentoDiferenca : null,
         valor_item_antigo: itemAntigoSelecionado.valor_unitario,

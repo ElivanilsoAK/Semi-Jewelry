@@ -44,6 +44,27 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
   const [desconto, setDesconto] = useState(0);
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [datasPersonalizadas, setDatasPersonalizadas] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (formaPagamento === 'cartao_credito' || formaPagamento === 'negociacao') {
+      setTipoVenda('parcelado');
+    } else {
+      setTipoVenda('avista');
+    }
+  }, [formaPagamento]);
+
+  useEffect(() => {
+    if (tipoVenda === 'parcelado') {
+      const hoje = new Date();
+      const datas = Array.from({ length: numeroParcelas }, (_, i) => {
+        const data = new Date(hoje);
+        data.setMonth(data.getMonth() + i + 1);
+        return data.toISOString().split('T')[0];
+      });
+      setDatasPersonalizadas(datas);
+    }
+  }, [numeroParcelas, tipoVenda]);
 
   useEffect(() => {
     loadData();
@@ -301,14 +322,21 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
 
         const valorParcela = valorRestante / numeroParcelas;
         for (let i = 0; i < numeroParcelas; i++) {
-          const dataVencimento = new Date(hoje);
-          dataVencimento.setMonth(dataVencimento.getMonth() + i + 1);
+          let dataVencimento: string;
+
+          if (formaPagamento === 'negociacao' && datasPersonalizadas[i]) {
+            dataVencimento = datasPersonalizadas[i];
+          } else {
+            const data = new Date(hoje);
+            data.setMonth(data.getMonth() + i + 1);
+            dataVencimento = data.toISOString().split('T')[0];
+          }
 
           pagamentos.push(await withUserId({
             venda_id: venda.id,
             numero_parcela: parcelaNum++,
             valor_parcela: valorParcela,
-            data_vencimento: dataVencimento.toISOString().split('T')[0],
+            data_vencimento: dataVencimento,
             status: 'pendente',
             valor_original: valorParcela
           }));
@@ -609,7 +637,7 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
                       </div>
 
                       {tipoVenda === 'parcelado' && (
-                        <div className="space-y-2 animate-fade-in">
+                        <div className="space-y-3 animate-fade-in">
                           <input
                             type="number"
                             step="0.01"
@@ -629,6 +657,30 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
                               <option key={n} value={n}>{n}x de R$ {((calcularTotal() - valorEntrada) / n).toFixed(2)}</option>
                             ))}
                           </select>
+
+                          {formaPagamento === 'negociacao' && numeroParcelas > 1 && (
+                            <div className="space-y-2 p-3 bg-silk rounded-lg border border-gold-ak">
+                              <label className="block text-xs font-bold text-charcoal mb-2">Datas de Vencimento</label>
+                              {datasPersonalizadas.map((data, index) => (
+                                <div key={index} className="flex items-center gap-2">
+                                  <span className="text-sm font-medium w-16">Parcela {index + 1}:</span>
+                                  <input
+                                    type="date"
+                                    value={data}
+                                    onChange={(e) => {
+                                      const novasDatas = [...datasPersonalizadas];
+                                      novasDatas[index] = e.target.value;
+                                      setDatasPersonalizadas(novasDatas);
+                                    }}
+                                    className="flex-1 px-2 py-1.5 border border-line rounded text-sm"
+                                  />
+                                  <span className="text-xs text-gray-600 w-24 text-right">
+                                    R$ {((calcularTotal() - valorEntrada) / numeroParcelas).toFixed(2)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
