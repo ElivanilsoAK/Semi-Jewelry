@@ -202,7 +202,7 @@
   /* Smooth Scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
-    height: 8px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -211,6 +211,36 @@
 
   ::-webkit-scrollbar-thumb {
     @apply bg-gray-300 rounded-full hover:bg-gray-400;
+  }
+
+  /* Mobile Bottom Navigation Scroll */
+  .mobile-nav-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: #D4AF37 transparent;
+  }
+
+  .mobile-nav-scroll::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .mobile-nav-scroll::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .mobile-nav-scroll::-webkit-scrollbar-thumb {
+    @apply bg-gold-ak rounded-full;
+  }
+
+  /* Smooth scroll snap for navigation */
+  .snap-scroll {
+    scroll-snap-type: x proximity;
+    scroll-padding: 0 16px;
+  }
+
+  .snap-scroll > * {
+    scroll-snap-align: start;
   }
 }
 

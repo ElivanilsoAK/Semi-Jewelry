@@ -383,7 +383,7 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {statCards.map((card) => {
           const Icon = card.icon;
           const showTrend = card.trend.percent > 0;
@@ -392,37 +392,37 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
             <div
               key={card.title}
               onClick={() => card.clickable && handleCardClick(card.view)}
-              className={`bg-white rounded-xl shadow-sm border border-line p-6 transition-all ${
-                card.clickable ? 'hover:shadow-md hover:scale-105 cursor-pointer' : ''
+              className={`bg-white rounded-xl shadow-sm border border-line p-4 sm:p-6 transition-all active:scale-95 ${
+                card.clickable ? 'hover:shadow-md cursor-pointer' : ''
               } ${card.alert ? 'ring-2 ring-red-500 animate-pulse-slow' : ''}`}
             >
               <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-600 mb-1">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1 truncate">
                     {card.title}
                   </p>
-                  <p className="text-2xl font-bold text-charcoal">
+                  <p className="text-xl sm:text-2xl font-bold text-charcoal break-words">
                     {card.value}
                   </p>
                 </div>
-                <div className={`${card.color} p-3 rounded-lg`}>
-                  <Icon className="w-6 h-6 text-white" />
+                <div className={`${card.color} p-2.5 sm:p-3 rounded-lg flex-shrink-0`}>
+                  <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
               </div>
 
               {showTrend && (
-                <div className={`flex items-center gap-1 text-sm font-medium ${
+                <div className={`flex items-center gap-1 text-xs sm:text-sm font-medium ${
                   card.trend.isPositive ? 'text-green-600' : 'text-red-600'
                 }`}>
                   {card.trend.isPositive ? (
-                    <TrendingUp className="w-4 h-4" />
+                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
                   ) : (
-                    <TrendingDown className="w-4 h-4" />
+                    <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4" />
                   )}
                   <span>
                     {card.trend.isPositive ? '+' : '-'}{card.trend.percent.toFixed(1)}%
                   </span>
-                  <span className="text-gray-500 ml-1">vs período anterior</span>
+                  <span className="text-gray-500 ml-1 hidden sm:inline">vs período anterior</span>
                 </div>
               )}
 
@@ -436,8 +436,8 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
         })}
       </div>
 
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-md p-6">
+      <div className="mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="bg-emerald-100 p-3 rounded-lg">
               <TrendingUp className="w-6 h-6 text-gold-ak" />
