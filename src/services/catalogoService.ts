@@ -73,58 +73,74 @@ export class CatalogoService {
       CatalogoService.drawMarbleTexture(doc, 0, 0, pageWidth, pageHeight);
 
       const centerX = pageWidth / 2;
-      const centerY = pageHeight / 2 - 50;
+      const centerY = 90;
 
-      const logoRadius = 30;
-      const borderRadius = logoRadius + 3;
-
-      doc.setFillColor(255, 255, 255);
-      doc.circle(centerX, centerY, borderRadius + 1, 'F');
-
-      doc.setDrawColor(...CatalogoService.COLORS.goldNoble);
-      doc.setLineWidth(2);
-      doc.circle(centerX, centerY, borderRadius, 'S');
+      const circleRadius = 35;
 
       try {
         const logoPath = '/esfera logo.png';
         const logoImg = await CatalogoService.loadImage(logoPath);
 
-        doc.saveGraphicsState();
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+        const size = circleRadius * 2 * 4;
+        canvas.width = size;
+        canvas.height = size;
 
-        const clipRadius = logoRadius - 1;
-        doc.circle(centerX, centerY, clipRadius, 'S');
-        doc.clip();
-        doc.discardPath();
+        const img = new Image();
+        img.src = logoPath;
+        await new Promise((resolve) => {
+          img.onload = resolve;
+        });
 
-        const imgSize = clipRadius * 2;
-        doc.addImage(logoImg, 'PNG', centerX - clipRadius, centerY - clipRadius, imgSize, imgSize, undefined, 'FAST');
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
 
-        doc.restoreGraphicsState();
+        ctx.drawImage(img, 0, 0, size, size);
+
+        const circularImgData = canvas.toDataURL('image/png');
+
+        doc.addImage(
+          circularImgData,
+          'PNG',
+          centerX - circleRadius,
+          centerY - circleRadius,
+          circleRadius * 2,
+          circleRadius * 2,
+          undefined,
+          'FAST'
+        );
+
+        doc.setDrawColor(...CatalogoService.COLORS.goldNoble);
+        doc.setLineWidth(3);
+        doc.circle(centerX, centerY, circleRadius + 2, 'S');
       } catch (error) {
-        console.log('Logo não carregada');
+        console.log('Logo não carregada:', error);
       }
 
-      const lineY = centerY + borderRadius + 30;
-      const lineWidth = contentWidth * 0.65;
+      const lineY = centerY + circleRadius + 35;
+      const fullLineWidth = pageWidth - (margin * 2);
       doc.setFillColor(...CatalogoService.COLORS.goldNoble);
-      doc.rect(centerX - lineWidth / 2, lineY, lineWidth, 2, 'F');
+      doc.rect(margin, lineY, fullLineWidth, 2, 'F');
 
-      const titleY = lineY + 20;
+      const titleY = lineY + 25;
       doc.setTextColor(...CatalogoService.COLORS.black);
-      doc.setFontSize(60);
+      doc.setFontSize(58);
       doc.setFont('helvetica', 'bold');
       doc.text('SPHERE', centerX, titleY, {
         align: 'center',
-        charSpace: 14
+        charSpace: 16
       });
 
-      const subtitleY = titleY + 12;
-      doc.setFontSize(11);
+      const subtitleY = titleY + 14;
+      doc.setFontSize(10.5);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...CatalogoService.COLORS.textMedium);
       doc.text('C A T Á L O G O   P R E M I U M', centerX, subtitleY, {
         align: 'center',
-        charSpace: 5
+        charSpace: 6
       });
 
       const dataFormatada = new Date().toLocaleDateString('pt-BR', {
