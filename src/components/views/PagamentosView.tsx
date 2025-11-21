@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 import {
   CheckCircle2, Clock, AlertCircle, DollarSign, Calendar,
   TrendingUp, Users, Filter, Search, ChevronRight, ChevronDown,
-  Receipt, Bell, CalendarDays, BarChart3
+  Receipt, Bell, CalendarDays, BarChart3, X
 } from 'lucide-react';
 
 interface Pagamento {
@@ -22,6 +22,9 @@ interface Pagamento {
   cliente_nome?: string;
   cliente_telefone?: string;
   venda_id?: string;
+  valor_negociado?: number;
+  data_negociacao?: string;
+  observacao_negociacao?: string;
 }
 
 interface PagamentoPorCliente {
@@ -56,6 +59,11 @@ export default function PagamentosView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [showNegociacaoModal, setShowNegociacaoModal] = useState(false);
+  const [pagamentoNegociando, setPagamentoNegociando] = useState<Pagamento | null>(null);
+  const [valorNegociado, setValorNegociado] = useState('');
+  const [dataNegociacao, setDataNegociacao] = useState('');
+  const [observacaoNegociacao, setObservacaoNegociacao] = useState('');
 
   useEffect(() => {
     loadData();
@@ -139,6 +147,42 @@ export default function PagamentosView() {
     } catch (error) {
       console.error('Erro:', error);
       alert('Erro ao atualizar pagamento');
+    }
+  };
+
+  const abrirNegociacao = (pagamento: Pagamento) => {
+    setPagamentoNegociando(pagamento);
+    setValorNegociado(pagamento.valor_negociado?.toString() || pagamento.valor_parcela.toString());
+    setDataNegociacao(pagamento.data_negociacao || new Date().toISOString().split('T')[0]);
+    setObservacaoNegociacao(pagamento.observacao_negociacao || '');
+    setShowNegociacaoModal(true);
+  };
+
+  const salvarNegociacao = async () => {
+    if (!pagamentoNegociando || !valorNegociado || !dataNegociacao) {
+      alert('❌ Preencha todos os campos obrigatórios');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('pagamentos')
+        .update({
+          valor_negociado: parseFloat(valorNegociado),
+          data_negociacao: dataNegociacao,
+          observacao_negociacao: observacaoNegociacao || null
+        })
+        .eq('id', pagamentoNegociando.id);
+
+      if (error) throw error;
+
+      alert('✅ Negociação salva com sucesso!');
+      setShowNegociacaoModal(false);
+      setPagamentoNegociando(null);
+      await loadData();
+    } catch (error) {
+      console.error('Erro:', error);
+      alert('❌ Erro ao salvar negociação');
     }
   };
 
@@ -643,14 +687,29 @@ export default function PagamentosView() {
                         </span>
                       </td>
                       <td className="px-4 py-4 text-right">
-                        {pagamento.status !== 'pago' && (
-                          <button
-                            onClick={() => handleMarcarPago(pagamento.id, pagamento.valor_parcela)}
-                            className="px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xs font-medium"
-                          >
-                            Marcar Pago
-                          </button>
-                        )}
+                        <div className="flex gap-2 justify-end">
+                          {pagamento.status !== 'pago' && (
+                            <>
+                              <button
+                                onClick={() => abrirNegociacao(pagamento)}
+                                className="px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-xs font-medium"
+                              >
+                                Negociar
+                              </button>
+                              <button
+                                onClick={() => handleMarcarPago(pagamento.id, pagamento.valor_parcela)}
+                                className="px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xs font-medium"
+                              >
+                                Marcar Pago
+                              </button>
+                            </>
+                          )}
+                          {pagamento.valor_negociado && (
+                            <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-lg font-medium">
+                              Negociado
+                            </span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -665,6 +724,100 @@ export default function PagamentosView() {
       {viewMode === 'calendario' && renderCalendario()}
       {viewMode === 'agrupado' && renderAgrupado()}
       {viewMode === 'projecao' && renderProjecao()}
+
+      {/* Modal de Negociação */}
+      {showNegociacaoModal && pagamentoNegociando && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-2xl w-full">
+            <div className="p-6 border-b border-line bg-gradient-to-r from-gold-ak to-amber-warning">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold text-white">Negociar Pagamento</h2>
+                <button
+                  onClick={() => {
+                    setShowNegociacaoModal(false);
+                    setPagamentoNegociando(null);
+                  }}
+                  className="text-white hover:bg-white/20 p-2 rounded-lg"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Cliente:</span>
+                  <span className="font-bold text-charcoal">{pagamentoNegociando.cliente_nome}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Parcela:</span>
+                  <span className="font-bold text-charcoal">{pagamentoNegociando.numero_parcela}ª</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Valor Original:</span>
+                  <span className="font-bold text-charcoal">{formatCurrency(pagamentoNegociando.valor_parcela)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Vencimento:</span>
+                  <span className="font-bold text-charcoal">{formatDate(pagamentoNegociando.data_vencimento)}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-charcoal mb-2">Valor Negociado *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={valorNegociado}
+                  onChange={(e) => setValorNegociado(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-line rounded-lg focus:ring-2 focus:ring-gold-ak focus:border-transparent font-medium"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-charcoal mb-2">Data da Negociação *</label>
+                <input
+                  type="date"
+                  value={dataNegociacao}
+                  onChange={(e) => setDataNegociacao(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-line rounded-lg focus:ring-2 focus:ring-gold-ak focus:border-transparent font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-charcoal mb-2">Observações</label>
+                <textarea
+                  value={observacaoNegociacao}
+                  onChange={(e) => setObservacaoNegociacao(e.target.value)}
+                  placeholder="Detalhes sobre a negociação..."
+                  className="w-full px-4 py-3 border-2 border-line rounded-lg focus:ring-2 focus:ring-gold-ak focus:border-transparent"
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowNegociacaoModal(false);
+                    setPagamentoNegociando(null);
+                  }}
+                  className="flex-1 px-4 py-3 border-2 border-line text-charcoal rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={salvarNegociacao}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-gold-ak to-amber-warning text-white rounded-lg hover:shadow-lg transition-all font-medium"
+                >
+                  Salvar Negociação
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Plus, Search, RefreshCw, Check, X, ArrowRight, DollarSign } from 'lucide-react';
+import { Shield, Plus, Search, RefreshCw, Check, X, ArrowRight, DollarSign, Edit2, Trash2 } from 'lucide-react';
 import { supabase, withUserId } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -22,6 +22,8 @@ export default function GarantiasView() {
   const { user } = useAuth();
   const [garantias, setGarantias] = useState<Garantia[]>([]);
   const [showNovaGarantia, setShowNovaGarantia] = useState(false);
+  const [showEditarGarantia, setShowEditarGarantia] = useState(false);
+  const [garantiaEditando, setGarantiaEditando] = useState<Garantia | null>(null);
   const [loading, setLoading] = useState(false);
   const [busca, setBusca] = useState('');
 
@@ -236,6 +238,63 @@ export default function GarantiasView() {
     return new Date(date).toLocaleDateString('pt-BR');
   };
 
+  async function editarGarantia(garantia: Garantia) {
+    setGarantiaEditando(garantia);
+    setShowEditarGarantia(true);
+  }
+
+  async function salvarEdicaoGarantia() {
+    if (!garantiaEditando) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('garantias')
+        .update({
+          status: garantiaEditando.status,
+          motivo: garantiaEditando.motivo,
+          observacoes: garantiaEditando.motivo
+        })
+        .eq('id', garantiaEditando.id);
+
+      if (error) throw error;
+
+      alert('✅ Garantia atualizada com sucesso!');
+      setShowEditarGarantia(false);
+      setGarantiaEditando(null);
+      carregarGarantias();
+    } catch (error) {
+      console.error('Erro:', error);
+      alert('❌ Erro ao atualizar garantia');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function excluirGarantia(id: string) {
+    if (!confirm('⚠️ Tem certeza que deseja excluir esta garantia? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('garantias')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      alert('✅ Garantia excluída com sucesso!');
+      carregarGarantias();
+    } catch (error) {
+      console.error('Erro:', error);
+      alert('❌ Erro ao excluir garantia');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="p-4 md:p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -267,7 +326,7 @@ export default function GarantiasView() {
             {garantias.map((g) => (
               <div key={g.id} className="border border-line rounded-lg p-4">
                 <div className="flex justify-between items-start">
-                  <div>
+                  <div className="flex-1">
                     <p className="font-bold text-charcoal">{g.tipo === 'troca' ? '🔄 Troca' : '↩️ Devolução'}</p>
                     <p className="text-sm text-gray-600 mt-1">{g.motivo}</p>
                     <p className="text-xs text-gray-500 mt-2">Criada em: {formatDate(g.created_at)}</p>
@@ -277,20 +336,94 @@ export default function GarantiasView() {
                       </p>
                     )}
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    g.status === 'pendente' ? 'bg-yellow-100 text-yellow-700' :
-                    g.status === 'aprovada' ? 'bg-blue-100 text-blue-700' :
-                    g.status === 'concluida' ? 'bg-green-100 text-green-700' :
-                    'bg-red-100 text-red-700'
-                  }`}>
-                    {g.status.toUpperCase()}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      g.status === 'pendente' ? 'bg-yellow-100 text-yellow-700' :
+                      g.status === 'aprovada' ? 'bg-blue-100 text-blue-700' :
+                      g.status === 'concluida' ? 'bg-green-100 text-green-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {g.status.toUpperCase()}
+                    </span>
+                    <button
+                      onClick={() => editarGarantia(g)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Editar garantia"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => excluirGarantia(g.id)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Excluir garantia"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Modal Editar Garantia */}
+      {showEditarGarantia && garantiaEditando && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-line bg-gradient-to-r from-gold-ak to-amber-warning">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold text-white">Editar Garantia</h2>
+                <button onClick={() => { setShowEditarGarantia(false); setGarantiaEditando(null); }} className="text-white hover:bg-white/20 p-2 rounded-lg">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-bold text-charcoal mb-2">Status</label>
+                <select
+                  value={garantiaEditando.status}
+                  onChange={(e) => setGarantiaEditando({ ...garantiaEditando, status: e.target.value as any })}
+                  className="w-full px-4 py-3 border-2 border-line rounded-lg focus:ring-2 focus:ring-gold-ak focus:border-transparent font-medium"
+                >
+                  <option value="pendente">Pendente</option>
+                  <option value="aprovada">Aprovada</option>
+                  <option value="concluida">Concluída</option>
+                  <option value="rejeitada">Rejeitada</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-charcoal mb-2">Motivo</label>
+                <textarea
+                  value={garantiaEditando.motivo}
+                  onChange={(e) => setGarantiaEditando({ ...garantiaEditando, motivo: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-line rounded-lg focus:ring-2 focus:ring-gold-ak focus:border-transparent"
+                  rows={4}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setShowEditarGarantia(false); setGarantiaEditando(null); }}
+                  className="flex-1 px-4 py-3 border-2 border-line text-charcoal rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={salvarEdicaoGarantia}
+                  disabled={loading}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-gold-ak to-amber-warning text-white rounded-lg hover:shadow-lg transition-all font-medium disabled:opacity-50"
+                >
+                  {loading ? 'Salvando...' : 'Salvar Alterações'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Nova Garantia */}
       {showNovaGarantia && (
