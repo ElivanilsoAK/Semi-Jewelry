@@ -53,13 +53,13 @@ export default function OCRPreviewModal({ items: initialItems, imageUrl, onConfi
       const categoriasNomes = data?.map(c => c.nome) || [];
 
       if (categoriasNomes.length === 0) {
-        setCategorias(['Pulseira', 'Anel', 'Brinco', 'Corrente', 'Pingente', 'Outro']);
+        setCategorias(['Pulseiras', 'Correntes', 'Pingentes', 'Anéis', 'Brincos G', 'Brincos I', 'Brincos M', 'Argolas', 'Outro']);
       } else {
         setCategorias(categoriasNomes);
       }
     } catch (error) {
       console.error('Erro ao carregar categorias:', error);
-      setCategorias(['Pulseira', 'Anel', 'Brinco', 'Corrente', 'Pingente', 'Outro']);
+      setCategorias(['Pulseiras', 'Correntes', 'Pingentes', 'Anéis', 'Brincos G', 'Brincos I', 'Brincos M', 'Argolas', 'Outro']);
     } finally {
       setLoading(false);
     }

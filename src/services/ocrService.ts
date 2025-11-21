@@ -13,28 +13,37 @@ export interface OCRResult {
   rawText?: string;
 }
 
-// Mapeia variações de nomes de categorias
+// Mapeia variações de nomes de categorias (PLURAL conforme papel OCR)
 const CATEGORIAS_MAP: { [key: string]: string } = {
-  'pulseira': 'Pulseira',
-  'pulseiras': 'Pulseira',
-  'corrente': 'Corrente',
-  'correntes': 'Corrente',
-  'pingente': 'Pingente',
-  'pingentes': 'Pingente',
-  'anel': 'Anel',
-  'aneis': 'Anel',
-  'anéis': 'Anel',
-  'brinco': 'Brinco',
-  'brincos': 'Brinco',
-  'argola': 'Argola',
-  'argolas': 'Argola',
-  'tornozeleira': 'Tornozeleira',
-  'tornozeleiras': 'Tornozeleira',
-  'conjunto': 'Conjunto',
-  'conjuntos': 'Conjunto',
+  'pulseira': 'Pulseiras',
+  'pulseiras': 'Pulseiras',
+  'corrente': 'Correntes',
+  'correntes': 'Correntes',
+  'pingente': 'Pingentes',
+  'pingentes': 'Pingentes',
+  'anel': 'Anéis',
+  'aneis': 'Anéis',
+  'anéis': 'Anéis',
+  'brinco': 'Brincos G', // Fallback genérico
+  'brincos': 'Brincos G',
+  'brincosg': 'Brincos G',
+  'brincos g': 'Brincos G',
+  'brinco g': 'Brincos G',
+  'brincosi': 'Brincos I',
+  'brincos i': 'Brincos I',
+  'brinco i': 'Brincos I',
+  'brincosm': 'Brincos M',
+  'brincos m': 'Brincos M',
+  'brinco m': 'Brincos M',
+  'argola': 'Argolas',
+  'argolas': 'Argolas',
+  'tornozeleira': 'Tornozeleiras',
+  'tornozeleiras': 'Tornozeleiras',
+  'conjunto': 'Conjuntos',
+  'conjuntos': 'Conjuntos',
   'infantil': 'Infantil',
-  'colar': 'Colar',
-  'colares': 'Colar',
+  'colar': 'Colares',
+  'colares': 'Colares',
 };
 
 // Detecta categorias no cabeçalho (aceita variações)
@@ -94,10 +103,10 @@ function processarTabelaInventario(text: string): ExtractedItem[] {
     }
   }
 
-  // Se não encontrou cabeçalho, tenta detectar por padrão comum
+  // Se não encontrou cabeçalho, usa ordem padrão do papel OCR
   if (categorias.length === 0) {
-    console.log('Cabeçalho não detectado, usando padrão comum');
-    categorias = ['Pulseira', 'Corrente', 'Pingente', 'Anel', 'Brinco G', 'Brinco I', 'Brinco M', 'Argola'];
+    console.log('Cabeçalho não detectado, usando ordem padrão do papel OCR');
+    categorias = ['Pulseiras', 'Correntes', 'Pingentes', 'Anéis', 'Brincos G', 'Brincos I', 'Brincos M', 'Argolas'];
     linhaInicioDados = 0;
 
     // Tenta encontrar primeira linha com múltiplos números
