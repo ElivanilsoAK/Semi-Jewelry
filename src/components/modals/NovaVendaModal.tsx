@@ -191,12 +191,13 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
       if (itensError) throw itensError;
 
       for (const item of itensVenda) {
-        const { error: updateError } = await supabase.rpc('atualizar_quantidade_item', {
+        const { error: updateError } = await supabase.rpc('decrement_stock', {
           item_id: item.item_pano_id,
-          qtd_vendida: item.quantidade,
+          amount: item.quantidade,
         });
 
         if (updateError) {
+          console.error('Erro ao decrementar estoque:', updateError);
           const { data: itemAtual } = await supabase
             .from('itens_pano')
             .select('quantidade_disponivel')
