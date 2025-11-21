@@ -19,32 +19,37 @@ interface OCRResponse {
   rawResponse?: string;
 }
 
-const SYSTEM_PROMPT = `Você é um especialista em digitalização de documentos manuscritos. Analise a imagem fornecida, que é uma tabela de controle de vendas de joias.
+const SYSTEM_PROMPT = `Você é um especialista em digitalização de documentos manuscritos. Analise a imagem fornecida, que é uma tabela de controle de vendas de joias/semijoias.
 
 Estrutura da Tabela:
 - O cabeçalho contém as categorias: Pulseiras, Correntes, Pingentes, Anéis, Brincos G, Brincos I, Brincos M, Argolas.
-- As linhas verticais são divisórias estritas. NÃO misture números de colunas diferentes.
-- Cada célula contendo um número manuscrito representa um item único e seu preço.
-- Ignore células com um 'X' ou vazias.
+- As linhas verticais são divisórias estritas entre colunas. NÃO misture números de colunas diferentes.
+- Cada célula contendo um número manuscrito representa um item único e seu preço em reais.
+- Ignore células com um 'X', traço '-' ou vazias.
+- Se houver múltiplos números na mesma célula, cada um é um item separado.
 
 Sua Tarefa:
-Extraia todos os itens visíveis e retorne APENAS um array JSON puro, sem markdown, neste formato exato:
+Extraia TODOS os itens visíveis da tabela e retorne APENAS um array JSON puro, sem markdown, sem comentários, neste formato EXATO:
 
 [
   { "categoria": "Pulseiras", "valor": 316, "quantidade": 1 },
   { "categoria": "Pulseiras", "valor": 214, "quantidade": 1 },
-  { "categoria": "Correntes", "valor": 884, "quantidade": 1 }
+  { "categoria": "Correntes", "valor": 884, "quantidade": 1 },
+  { "categoria": "Pingentes", "valor": 125, "quantidade": 1 }
 ]
 
-Atenção:
-- O número dentro da célula é o preço (valor).
-- Se houver dúvidas entre dois dígitos por causa da caligrafia, use a lógica de preços de mercado.
-- Cada célula com número gera UM item separado.
-- Respeite estritamente as colunas da tabela.
-- Retorne APENAS o JSON, sem texto adicional, sem markdown, sem explicações.`;
+REGRAS CRÍTICAS:
+1. O número dentro da célula é o PREÇO (valor) em reais
+2. Cada célula com número gera UM item separado (quantidade sempre 1)
+3. Respeite RIGOROSAMENTE as colunas da tabela (não misture colunas)
+4. Use os nomes EXATOS das categorias: Pulseiras, Correntes, Pingentes, Anéis, Brincos G, Brincos I, Brincos M, Argolas
+5. Se a caligrafia for ambígua, use lógica de preços de mercado (joias custam entre R$15 e R$9999)
+6. Retorne APENAS o JSON array, sem explicações, sem markdown, sem texto extra
+7. Se não encontrar itens, retorne array vazio: []`;
 
 Deno.serve(async (req: Request) => {
-  // Handle CORS preflight
+  console.log("\n=== NOVA REQUISIÇÃO OCR ===", new Date().toISOString());
+
   if (req.method === "OPTIONS") {
     return new Response(null, {
       status: 200,
@@ -53,10 +58,10 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // Validate method
     if (req.method !== "POST") {
+      console.error("❌ Método não permitido:", req.method);
       return new Response(
-        JSON.stringify({ success: false, error: "Method not allowed" }),
+        JSON.stringify({ success: false, error: "Método não permitido" }),
         {
           status: 405,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -64,14 +69,13 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Get Google API Key from environment
     const googleApiKey = Deno.env.get("GOOGLE_API_KEY");
     if (!googleApiKey) {
-      console.error("GOOGLE_API_KEY not found in environment");
+      console.error("❌ GOOGLE_API_KEY não encontrada");
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Configuração do servidor incompleta. Entre em contato com o administrador.",
+          error: "GOOGLE_API_KEY não configurada. Consulte GOOGLE_API_SETUP.md",
         }),
         {
           status: 500,
@@ -80,13 +84,15 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Parse request body
+    console.log("✅ GOOGLE_API_KEY encontrada");
+
     const formData = await req.formData();
     const imageFile = formData.get("image");
 
     if (!imageFile || !(imageFile instanceof File)) {
+      console.error("❌ Nenhuma imagem enviada");
       return new Response(
-        JSON.stringify({ success: false, error: "Nenhuma imagem foi enviada" }),
+        JSON.stringify({ success: false, error: "Nenhuma imagem enviada" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -94,9 +100,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log("Processing image:", imageFile.name, imageFile.type, imageFile.size);
+    console.log("📷 Imagem:", imageFile.name, imageFile.type, (imageFile.size / 1024).toFixed(2) + "KB");
 
-    // Convert image to base64
     const arrayBuffer = await imageFile.arrayBuffer();
     const base64Image = btoa(
       new Uint8Array(arrayBuffer).reduce(
@@ -105,21 +110,27 @@ Deno.serve(async (req: Request) => {
       )
     );
 
-    // Get mime type
     let mimeType = imageFile.type || "image/jpeg";
     if (!mimeType.startsWith("image/")) {
       mimeType = "image/jpeg";
     }
 
-    console.log("Image converted to base64, size:", base64Image.length, "mime:", mimeType);
+    console.log("✅ Base64:", (base64Image.length / 1024).toFixed(2) + "KB");
 
-    // Initialize Gemini API
+    console.log("🤖 Inicializando Gemini 2.0 Flash Experimental...");
     const genAI = new GoogleGenerativeAI(googleApiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash-exp",
+      generationConfig: {
+        temperature: 0.1,
+        topK: 32,
+        topP: 1,
+        maxOutputTokens: 8192,
+      },
+    });
 
-    console.log("Calling Gemini API...");
+    console.log("🚀 Chamando Gemini API...");
 
-    // Call Gemini with image and prompt
     const result = await model.generateContent([
       SYSTEM_PROMPT,
       {
@@ -133,30 +144,38 @@ Deno.serve(async (req: Request) => {
     const response = await result.response;
     const text = response.text();
 
-    console.log("Gemini response:", text);
+    console.log("\n📥 Resposta Gemini:");
+    console.log(text);
 
-    // Parse JSON response
     let items: ExtractedItem[];
     try {
-      // Remove markdown code blocks if present
       let cleanedText = text.trim();
+
       if (cleanedText.startsWith("```json")) {
-        cleanedText = cleanedText.replace(/```json\n?/g, "").replace(/```\n?/g, "");
+        cleanedText = cleanedText.replace(/```json\n?/g, "").replace(/```\n?$/g, "");
       } else if (cleanedText.startsWith("```")) {
         cleanedText = cleanedText.replace(/```\n?/g, "");
       }
+
+      const jsonMatch = cleanedText.match(/\[.*\]/s);
+      if (jsonMatch) {
+        cleanedText = jsonMatch[0];
+      }
+
       cleanedText = cleanedText.trim();
+
+      console.log("🧼 Parsing JSON...");
 
       items = JSON.parse(cleanedText);
 
-      // Validate structure
       if (!Array.isArray(items)) {
-        throw new Error("Response is not an array");
+        throw new Error("Resposta não é array");
       }
 
-      // Validate each item
-      items = items.filter(item => {
-        return (
+      console.log(`📦 ${items.length} itens parseados`);
+
+      const validItems = items.filter(item => {
+        const isValid = (
           item &&
           typeof item === "object" &&
           typeof item.categoria === "string" &&
@@ -165,20 +184,41 @@ Deno.serve(async (req: Request) => {
           item.valor > 0 &&
           item.quantidade > 0
         );
+
+        if (!isValid) {
+          console.warn("⚠️ Item inválido:", JSON.stringify(item));
+        }
+
+        return isValid;
       });
 
+      items = validItems;
+
       if (items.length === 0) {
-        throw new Error("No valid items found in response");
+        console.warn("⚠️ Nenhum item válido");
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "Nenhum item detectado. Verifique se a foto está nítida e contém uma tabela.",
+            rawResponse: text,
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       }
 
-      console.log(`Successfully extracted ${items.length} items`);
+      console.log(`\n✅ SUCESSO: ${items.length} itens válidos`);
+      console.log("Amostra:", items.slice(0, 3));
+
     } catch (parseError) {
-      console.error("Failed to parse Gemini response:", parseError);
-      console.error("Raw response:", text);
+      console.error("❌ Erro parse:", parseError);
+      console.error("Texto:", text);
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Não foi possível processar a resposta da IA. Tente novamente.",
+          error: "Erro ao interpretar resposta IA: " + (parseError as Error).message,
           rawResponse: text,
         }),
         {
@@ -188,7 +228,6 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Return success
     const ocrResponse: OCRResponse = {
       items,
       success: true,
@@ -199,17 +238,20 @@ Deno.serve(async (req: Request) => {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (error) {
-    console.error("Error processing OCR:", error);
+    console.error("❌ ERRO GERAL:", error);
+    console.error("Stack:", (error as Error).stack);
+
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : "Erro desconhecido ao processar imagem",
+        error: "Erro ao processar: " + ((error as Error).message || "Erro desconhecido"),
       }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+        }
     );
   }
 });
