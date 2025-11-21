@@ -41,7 +41,7 @@ export default function ConfiguracoesView() {
     const { data, error } = await supabase
       .from('categorias')
       .select('*')
-      .eq('user_id', user?.id)
+      .or(`user_id.eq.${user?.id},user_id.is.null`)
       .order('ordem');
 
     if (!error && data) {

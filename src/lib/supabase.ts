@@ -55,11 +55,14 @@ export interface ItemPano {
   id: string;
   user_id: string;
   pano_id: string;
-  categoria: 'argola' | 'infantil' | 'pulseira' | 'colar' | 'brinco' | 'anel' | 'tornozeleira' | 'pingente' | 'conjunto' | 'outro';
+  categoria: string;
+  categoria_custom?: string | null;
   descricao: string;
   quantidade_inicial: number;
   quantidade_disponivel: number;
   valor_unitario: number;
+  foto_url?: string | null;
+  foto_urls?: any;
   created_at: string;
 }
 
