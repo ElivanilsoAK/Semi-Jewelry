@@ -70,7 +70,7 @@ IMPORTANTE:
 - Retorne APENAS o array JSON, sem comentários`;
 
 Deno.serve(async (req: Request) => {
-  console.log("\n=== NOVA REQUISIÇÃO OCR (Gemini 1.5 Flash + Prompt Otimizado) ===", new Date().toISOString());
+  console.log("\n=== NOVA REQUISIÇÃO OCR (Gemini 2.0 Flash Experimental) ===", new Date().toISOString());
 
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -139,12 +139,12 @@ Deno.serve(async (req: Request) => {
 
     console.log("✅ Base64:", (base64Image.length / 1024).toFixed(2) + "KB");
 
-    console.log("🤖 Inicializando Gemini 1.5 Flash com Prompt Otimizado...");
+    console.log("🤖 Inicializando Gemini 2.0 Flash Experimental...");
     const genAI = new GoogleGenerativeAI(googleApiKey);
 
-    // 🚀 Usando gemini-1.5-flash-latest com prompt estruturado para máxima precisão
+    // 🚀 Usando gemini-2.0-flash-exp - O modelo mais avançado disponível
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash-latest",
+      model: "gemini-2.0-flash-exp",
       generationConfig: {
         temperature: 0.1,
         topK: 32,
@@ -153,7 +153,7 @@ Deno.serve(async (req: Request) => {
       },
     });
 
-    console.log("🚀 Chamando Gemini 1.5 Flash com prompt estruturado...");
+    console.log("🚀 Chamando Gemini 2.0 Flash Experimental com prompt estruturado...");
 
     const result = await model.generateContent([
       SYSTEM_PROMPT,
@@ -168,7 +168,7 @@ Deno.serve(async (req: Request) => {
     const response = await result.response;
     const text = response.text();
 
-    console.log("\n📥 Resposta Gemini Flash:");
+    console.log("\n📥 Resposta Gemini 2.0 Flash Exp:");
     console.log(text);
 
     let items: ExtractedItem[];
