@@ -154,6 +154,16 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
     setSaving(true);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Verificando autenticação antes de registrar venda:', {
+        authenticated: !!session,
+        userId: session?.user?.id,
+        expiresAt: session?.expires_at
+      });
+
+      if (!session) {
+        throw new Error('Sessão não encontrada. Por favor, faça login novamente.');
+      }
       const valorTotal = calcularValorTotal();
       const valorParcela = valorTotal / numeroParcelas;
 
@@ -233,7 +243,15 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
       onClose();
     } catch (error) {
       console.error('Erro ao registrar venda:', error);
-      alert('Erro ao registrar venda: ' + (error as Error).message);
+      const errorMessage = (error as Error).message;
+
+      if (errorMessage.includes('not authenticated')) {
+        alert('❌ Sessão expirada!\n\nPor favor, faça login novamente para continuar.\n\nVocê será redirecionado para a página de login.');
+        await supabase.auth.signOut();
+        window.location.reload();
+      } else {
+        alert('❌ Erro ao registrar venda:\n\n' + errorMessage + '\n\nTente novamente ou contate o suporte.');
+      }
     } finally {
       setSaving(false);
     }

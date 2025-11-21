@@ -6,13 +6,24 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export const getCurrentUserId = async (): Promise<string | null> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  return user?.id || null;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.id) {
+      return session.user.id;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    return user?.id || null;
+  } catch (error) {
+    console.error('Erro ao obter user ID:', error);
+    return null;
+  }
 };
 
 export const withUserId = async <T extends Record<string, any>>(data: T): Promise<T & { user_id: string }> => {
   const userId = await getCurrentUserId();
   if (!userId) {
+    console.error('Tentativa de operação sem autenticação:', data);
     throw new Error('User not authenticated');
   }
   return { ...data, user_id: userId };
