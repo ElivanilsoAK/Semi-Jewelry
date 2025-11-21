@@ -1,41 +1,72 @@
 import { useState, useEffect } from 'react';
 import { X, Check, Trash2, Plus } from 'lucide-react';
 import { ExtractedItem } from '../../services/ocrService';
+import { supabase } from '../../lib/supabase';
+
+interface ItemComCategoria extends ExtractedItem {
+  categoria: string;
+  descricao: string;
+}
 
 interface OCRPreviewModalProps {
   items: ExtractedItem[];
   imageUrl: string;
-  onConfirm: (items: ExtractedItem[]) => void;
+  onConfirm: (items: ItemComCategoria[]) => void;
   onCancel: () => void;
 }
 
-const CATEGORIAS = [
-  'argola',
-  'infantil',
-  'pulseira',
-  'colar',
-  'brinco',
-  'anel',
-  'tornozeleira',
-  'pingente',
-  'conjunto',
-  'outro',
-] as const;
-
 export default function OCRPreviewModal({ items: initialItems, imageUrl, onConfirm, onCancel }: OCRPreviewModalProps) {
-  const [items, setItems] = useState<ExtractedItem[]>(initialItems);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [items, setItems] = useState<ItemComCategoria[]>([]);
+  const [categorias, setCategorias] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [newItem, setNewItem] = useState<ExtractedItem>({
-    numero: '',
-    categoria: 'outro',
-    valor: 0,
-  });
+  useEffect(() => {
+    loadCategorias();
+  }, []);
 
-  const handleEdit = (index: number, field: keyof ExtractedItem, value: string | number) => {
+  useEffect(() => {
+    if (categorias.length > 0 && items.length === 0) {
+      const itemsComCategoria = initialItems.map(item => ({
+        ...item,
+        categoria: categorias[0] || '',
+        descricao: `${categorias[0] || 'Item'} - ${item.valor}`
+      }));
+      setItems(itemsComCategoria);
+    }
+  }, [categorias, initialItems]);
+
+  const loadCategorias = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categorias')
+        .select('nome')
+        .order('nome');
+
+      if (error) throw error;
+
+      const categoriasNomes = data?.map(c => c.nome) || [];
+
+      if (categoriasNomes.length === 0) {
+        setCategorias(['Pulseira', 'Anel', 'Brinco', 'Corrente', 'Pingente', 'Outro']);
+      } else {
+        setCategorias(categoriasNomes);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar categorias:', error);
+      setCategorias(['Pulseira', 'Anel', 'Brinco', 'Corrente', 'Pingente', 'Outro']);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = (index: number, field: keyof ItemComCategoria, value: string | number) => {
     const updated = [...items];
     updated[index] = { ...updated[index], [field]: value };
+
+    if (field === 'categoria' || field === 'valor') {
+      updated[index].descricao = `${updated[index].categoria} - ${updated[index].valor}`;
+    }
+
     setItems(updated);
   };
 
@@ -44,17 +75,40 @@ export default function OCRPreviewModal({ items: initialItems, imageUrl, onConfi
   };
 
   const handleAdd = () => {
-    if (newItem.numero.trim()) {
-      setItems([...items, newItem]);
-      setNewItem({ numero: '', categoria: 'outro', valor: 0 });
-      setShowAddForm(false);
+    if (categorias.length > 0) {
+      setItems([...items, {
+        valor: 0,
+        quantidade: 1,
+        categoria: categorias[0],
+        descricao: `${categorias[0]} - 0`
+      }]);
     }
   };
 
   const handleConfirm = () => {
-    const validItems = items.filter(item => item.numero.trim() !== '');
+    const validItems = items.filter(item =>
+      item.valor > 0 &&
+      item.quantidade > 0 &&
+      item.categoria.trim() !== ''
+    );
+
+    if (validItems.length === 0) {
+      alert('Adicione pelo menos um item válido!');
+      return;
+    }
+
     onConfirm(validItems);
   };
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl p-6">
+          <p>Carregando categorias...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -63,10 +117,11 @@ export default function OCRPreviewModal({ items: initialItems, imageUrl, onConfi
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-xl font-bold text-gray-800">
-                Revisar Itens Extraídos do OCR
+                Definir Categorias dos Itens
               </h2>
               <p className="text-sm text-gray-500 mt-1">
-                {items.length} itens detectados. Revise e edite conforme necessário.
+                O OCR detectou {initialItems.length} {initialItems.length === 1 ? 'valor' : 'valores'}.
+                Defina a categoria para cada item.
               </p>
             </div>
             <button
@@ -86,13 +141,24 @@ export default function OCRPreviewModal({ items: initialItems, imageUrl, onConfi
               alt="Documento original"
               className="w-full rounded-lg border border-gray-300"
             />
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+              <h4 className="font-semibold text-blue-900 text-sm mb-2">📋 Valores Detectados:</h4>
+              <div className="text-sm text-blue-800 space-y-1">
+                {initialItems.map((item, i) => (
+                  <div key={i} className="flex justify-between">
+                    <span>Valor: R$ {item.valor.toFixed(2)}</span>
+                    <span className="font-semibold">Quantidade: {item.quantidade}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="w-1/2 p-6 overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold text-gray-800">Itens Detectados</h3>
+              <h3 className="font-semibold text-gray-800">Categorias dos Itens</h3>
               <button
-                onClick={() => setShowAddForm(!showAddForm)}
+                onClick={handleAdd}
                 className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 text-sm font-medium"
               >
                 <Plus className="w-4 h-4" />
@@ -100,112 +166,91 @@ export default function OCRPreviewModal({ items: initialItems, imageUrl, onConfi
               </button>
             </div>
 
-            {showAddForm && (
-              <div className="mb-4 p-4 bg-gray-50 rounded-lg space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Número
-                    </label>
-                    <input
-                      type="text"
-                      value={newItem.numero}
-                      onChange={(e) => setNewItem({ ...newItem, numero: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                      placeholder="Ex: 123"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Categoria
-                    </label>
-                    <select
-                      value={newItem.categoria}
-                      onChange={(e) => setNewItem({ ...newItem, categoria: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent capitalize"
-                    >
-                      {CATEGORIAS.map((cat) => (
-                        <option key={cat} value={cat} className="capitalize">
-                          {cat}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Valor (opcional)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={newItem.valor || 0}
-                      onChange={(e) => setNewItem({ ...newItem, valor: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                      placeholder="R$ 0.00"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowAddForm(false)}
-                    className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleAdd}
-                    className="flex-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors text-sm"
-                  >
-                    Adicionar
-                  </button>
-                </div>
-              </div>
-            )}
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-800">
+                <strong>Instruções:</strong> O OCR identificou os valores e quantidades.
+                Agora você precisa definir a categoria para cada item.
+                A descrição será gerada automaticamente como: <strong>Categoria - Valor</strong>
+              </p>
+            </div>
 
             {items.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                Nenhum item detectado. Adicione itens manualmente.
+                <p>Nenhum item para categorizar.</p>
+                <button
+                  onClick={handleAdd}
+                  className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+                >
+                  Adicionar Item Manualmente
+                </button>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {items.map((item, index) => (
                   <div
                     key={index}
-                    className="bg-gray-50 border border-gray-200 rounded-lg p-3 hover:bg-gray-100 transition-colors"
+                    className="bg-gray-50 border border-gray-200 rounded-lg p-4"
                   >
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="text"
-                        value={item.numero}
-                        onChange={(e) => handleEdit(index, 'numero', e.target.value)}
-                        className="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
-                        placeholder="Nº"
-                      />
-                      <select
-                        value={item.categoria}
-                        onChange={(e) => handleEdit(index, 'categoria', e.target.value)}
-                        className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm capitalize"
-                      >
-                        {CATEGORIAS.map((cat) => (
-                          <option key={cat} value={cat} className="capitalize">
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={item.valor || 0}
-                        onChange={(e) => handleEdit(index, 'valor', parseFloat(e.target.value) || 0)}
-                        className="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
-                        placeholder="R$"
-                      />
-                      <button
-                        onClick={() => handleDelete(index)}
-                        className="text-red-600 hover:text-red-900 p-1"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Categoria *
+                        </label>
+                        <select
+                          value={item.categoria}
+                          onChange={(e) => handleEdit(index, 'categoria', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        >
+                          {categorias.map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Valor (R$) *
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={item.valor}
+                          onChange={(e) => handleEdit(index, 'valor', parseFloat(e.target.value) || 0)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Quantidade *
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantidade}
+                          onChange={(e) => handleEdit(index, 'quantidade', parseInt(e.target.value) || 1)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <button
+                          onClick={() => handleDelete(index)}
+                          className="w-full px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Remover
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <p className="text-sm text-gray-600">
+                        <strong>Descrição:</strong> {item.descricao}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -214,21 +259,21 @@ export default function OCRPreviewModal({ items: initialItems, imageUrl, onConfi
           </div>
         </div>
 
-        <div className="p-6 border-t border-gray-200">
+        <div className="p-6 border-t border-gray-200 bg-gray-50">
           <div className="flex gap-3">
             <button
               onClick={onCancel}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-white transition-colors font-medium"
             >
               Cancelar
             </button>
             <button
               onClick={handleConfirm}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={items.length === 0}
             >
               <Check className="w-5 h-5" />
-              Confirmar {items.length} {items.length === 1 ? 'Item' : 'Itens'}
+              Confirmar e Salvar {items.length} {items.length === 1 ? 'Item' : 'Itens'}
             </button>
           </div>
         </div>

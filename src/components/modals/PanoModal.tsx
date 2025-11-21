@@ -163,7 +163,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
     }
   };
 
-  const handleOCRConfirm = async (confirmedItems: ExtractedItem[]) => {
+  const handleOCRConfirm = async (confirmedItems: any[]) => {
     try {
       if (!savedPanoId) {
         throw new Error('Pano ID não encontrado');
@@ -174,10 +174,10 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
           return await withUserId({
             pano_id: savedPanoId,
             categoria: item.categoria,
-            descricao: item.descricao || `${item.categoria} - R$ ${item.valor}`,
-            quantidade_inicial: item.quantidade || 1,
-            quantidade_disponivel: item.quantidade || 1,
-            valor_unitario: item.valor || 0,
+            descricao: item.descricao,
+            quantidade_inicial: item.quantidade,
+            quantidade_disponivel: item.quantidade,
+            valor_unitario: item.valor,
           });
         })
       );
