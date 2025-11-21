@@ -320,17 +320,19 @@ export class CatalogoService {
 
     await addCoverPage();
 
-    let currentPage = 2;
-    let yPosition = 45;
+    let currentPage = 1;
+    let yPosition = 0;
+    let isFirstCategory = true;
 
     for (const categoria of categorias) {
       const produtosCategoria = itens.filter(item => item.categoria === categoria);
 
-      if (currentPage > 2 || yPosition > 45) {
+      if (isFirstCategory || yPosition > pageHeight - 150) {
         doc.addPage();
         currentPage++;
         addHeader(currentPage);
         yPosition = 45;
+        isFirstCategory = false;
       }
 
       drawCategoryHeader(categoria, yPosition);
