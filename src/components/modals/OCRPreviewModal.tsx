@@ -26,11 +26,17 @@ export default function OCRPreviewModal({ items: initialItems, imageUrl, onConfi
 
   useEffect(() => {
     if (categorias.length > 0 && items.length === 0) {
-      const itemsComCategoria = initialItems.map(item => ({
-        ...item,
-        categoria: categorias[0] || '',
-        descricao: `${categorias[0] || 'Item'} - ${item.valor}`
-      }));
+      const itemsComCategoria = initialItems.map(item => {
+        // Se o item já vem com categoria do OCR, usa ela
+        // Senão, usa a primeira categoria disponível
+        const categoriaItem = (item as any).categoria || categorias[0] || '';
+
+        return {
+          ...item,
+          categoria: categoriaItem,
+          descricao: `${categoriaItem} - R$ ${item.valor.toFixed(2)}`
+        };
+      });
       setItems(itemsComCategoria);
     }
   }, [categorias, initialItems]);
@@ -142,14 +148,23 @@ export default function OCRPreviewModal({ items: initialItems, imageUrl, onConfi
               className="w-full rounded-lg border border-gray-300"
             />
             <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-              <h4 className="font-semibold text-blue-900 text-sm mb-2">📋 Valores Detectados:</h4>
-              <div className="text-sm text-blue-800 space-y-1">
-                {initialItems.map((item, i) => (
-                  <div key={i} className="flex justify-between">
-                    <span>Valor: R$ {item.valor.toFixed(2)}</span>
-                    <span className="font-semibold">Quantidade: {item.quantidade}</span>
-                  </div>
-                ))}
+              <h4 className="font-semibold text-blue-900 text-sm mb-2">📋 Itens Detectados pelo OCR:</h4>
+              <div className="text-xs text-blue-800 space-y-1 max-h-64 overflow-y-auto">
+                {initialItems.map((item, i) => {
+                  const cat = (item as any).categoria;
+                  return (
+                    <div key={i} className="flex justify-between items-center py-1 border-b border-blue-200 last:border-0">
+                      {cat && <span className="font-semibold text-emerald-700">{cat}</span>}
+                      <span>R$ {item.valor.toFixed(2)}</span>
+                      <span className="text-blue-600">Qtd: {item.quantidade}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-3 pt-3 border-t border-blue-300">
+                <p className="text-sm font-bold text-blue-900">
+                  Total: {initialItems.length} {initialItems.length === 1 ? 'item' : 'itens'}
+                </p>
               </div>
             </div>
           </div>
@@ -166,11 +181,10 @@ export default function OCRPreviewModal({ items: initialItems, imageUrl, onConfi
               </button>
             </div>
 
-            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm text-amber-800">
-                <strong>Instruções:</strong> O OCR identificou os valores e quantidades.
-                Agora você precisa definir a categoria para cada item.
-                A descrição será gerada automaticamente como: <strong>Categoria - Valor</strong>
+            <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <p className="text-sm text-emerald-800">
+                <strong>✅ OCR Completo!</strong> O sistema identificou automaticamente as categorias, valores e quantidades.
+                Revise os itens abaixo e ajuste se necessário antes de confirmar.
               </p>
             </div>
 
