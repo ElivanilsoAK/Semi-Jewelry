@@ -10,7 +10,7 @@ interface Stats {
   pagamentosPendentes: number;
   comissaoTotal: number;
   pagamentosAtrasados: number;
-  ticketMedio: number;
+  prestacaoContas: number;
   produtosMaisVendidos: { nome: string; quantidade: number }[];
 }
 
@@ -51,7 +51,7 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
       pagamentosPendentes: 0,
       comissaoTotal: 0,
       pagamentosAtrasados: 0,
-      ticketMedio: 0,
+      prestacaoContas: 0,
       produtosMaisVendidos: [],
     },
     previous: {
@@ -62,7 +62,7 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
       pagamentosPendentes: 0,
       comissaoTotal: 0,
       pagamentosAtrasados: 0,
-      ticketMedio: 0,
+      prestacaoContas: 0,
       produtosMaisVendidos: [],
     }
   });
@@ -202,8 +202,8 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
       const percentualComissao = panosData.data?.percentual_comissao || 10;
       const comissaoTotal = (valorVendasPagas * Number(percentualComissao)) / 100;
 
-      const currentTicketMedio = currentVendas.data?.length ? currentValorTotal / currentVendas.data.length : 0;
-      const previousTicketMedio = previousVendas.data?.length ? previousValorTotal / previousVendas.data.length : 0;
+      const currentPrestacaoContas = currentValorTotal * 0.60;
+      const previousPrestacaoContas = previousValorTotal * 0.60;
 
       const produtosMap = new Map<string, number>();
       itensVendidos.data?.forEach((item: any) => {
@@ -238,7 +238,7 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
           pagamentosPendentes: currentPagamentos.data?.length || 0,
           comissaoTotal,
           pagamentosAtrasados: pagamentosAtrasados.count || 0,
-          ticketMedio: currentTicketMedio,
+          prestacaoContas: currentPrestacaoContas,
           produtosMaisVendidos,
         },
         previous: {
@@ -249,7 +249,7 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
           pagamentosPendentes: previousPagamentos.data?.length || 0,
           comissaoTotal,
           pagamentosAtrasados: 0,
-          ticketMedio: previousTicketMedio,
+          prestacaoContas: previousPrestacaoContas,
           produtosMaisVendidos: [],
         }
       });
@@ -312,11 +312,11 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
       clickable: true
     },
     {
-      title: 'Ticket Médio',
-      value: `R$ ${statsComparison.current.ticketMedio.toFixed(2)}`,
+      title: 'Prestação de Contas',
+      value: `R$ ${statsComparison.current.prestacaoContas.toFixed(2)}`,
       icon: Receipt,
       color: 'bg-indigo-500',
-      trend: calculateTrend(statsComparison.current.ticketMedio, statsComparison.previous.ticketMedio),
+      trend: calculateTrend(statsComparison.current.prestacaoContas, statsComparison.previous.prestacaoContas),
       view: 'vendas',
       clickable: true
     },

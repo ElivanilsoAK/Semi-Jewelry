@@ -80,6 +80,7 @@ export default function RelatoriosView() {
     const { data, error } = await supabase
       .from('itens_pano')
       .select('*')
+      .gt('quantidade_disponivel', 0)
       .order('categoria', { ascending: true });
 
     if (error) {
