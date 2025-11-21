@@ -246,7 +246,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
                   🤖 Analisando com Inteligência Artificial
                 </p>
                 <p className="text-xs text-blue-700 mt-1.5 leading-relaxed">
-                  O Google Gemini 2.0 está lendo a tabela manuscrita e identificando os valores automaticamente. Aguarde...
+                  O Google Gemini 1.5 Pro está lendo a tabela coluna por coluna e identificando os valores com precisão cirúrgica. Aguarde...
                 </p>
                 <div className="mt-2 flex gap-1">
                   <div className="h-1 w-8 bg-blue-400 rounded animate-pulse"></div>
@@ -403,7 +403,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
                 🤖 Detecção Inteligente com IA
               </p>
               <p className="text-xs text-emerald-700 mt-1 leading-relaxed">
-                Quando você enviar a foto, o <strong>Google Gemini 2.0</strong> irá ler automaticamente a tabela manuscrita e extrair todos os valores, identificando categorias e preços com precisão de 95%+
+                Quando você enviar a foto, o <strong>Google Gemini 1.5 Pro</strong> irá ler automaticamente a tabela coluna por coluna, respeitando as linhas verticais e evitando misturar valores de colunas diferentes
               </p>
             </div>
           </div>

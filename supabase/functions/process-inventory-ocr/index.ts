@@ -19,36 +19,58 @@ interface OCRResponse {
   rawResponse?: string;
 }
 
-const SYSTEM_PROMPT = `Você é um especialista em digitalização de documentos manuscritos. Analise a imagem fornecida, que é uma tabela de controle de vendas de joias/semijoias.
+const SYSTEM_PROMPT = `Você é um especialista em transcrição de documentos contábeis manuscritos (OCR avançado).
+Sua missão é extrair dados de uma tabela de controle de estoque de joias com precisão cirúrgica.
 
-Estrutura da Tabela:
-- O cabeçalho contém as categorias: Pulseiras, Correntes, Pingentes, Anéis, Brincos G, Brincos I, Brincos M, Argolas.
-- As linhas verticais são divisórias estritas entre colunas. NÃO misture números de colunas diferentes.
-- Cada célula contendo um número manuscrito representa um item único e seu preço em reais.
-- Ignore células com um 'X', traço '-' ou vazias.
-- Se houver múltiplos números na mesma célula, cada um é um item separado.
+### 🗺️ MAPA DA TABELA (Leia da Esquerda para a Direita)
+As colunas seguem estritamente esta ordem visual:
+1. Pulseiras
+2. Correntes
+3. Pingentes
+4. Anéis
+5. Brincos G
+6. Brincos I
+7. Brincos M
+8. Argolas
 
-Sua Tarefa:
-Extraia TODOS os itens visíveis da tabela e retorne APENAS um array JSON puro, sem markdown, sem comentários, neste formato EXATO:
+### ⚠️ REGRAS DE OURO (Visão Computacional)
+1. **Barreiras Verticais:** As linhas verticais são muros intransponíveis. NUNCA leia um número atravessando uma linha vertical.
+2. **Leitura Vertical:** Leia uma coluna inteira de cima para baixo antes de passar para a próxima coluna à direita.
+3. **Separador de Itens:** Cada número escrito em uma "célula" (espaço entre linhas da pauta) é um item ÚNICO.
+   - Erro comum a evitar: Ler "20" na linha de cima e "00" na linha de baixo como "2000". Se estão em linhas de pauta diferentes, são dois preços distintos.
+4. **Formatação de Preço:** Os números representam valores em Reais (R$).
+   - Exemplo: Um "52" escrito à mão é R$ 52,00.
+   - Ignore símbolos de moeda, foque nos dígitos.
+5. **Células Vazias:** Ignore células com "X", "-" ou vazias.
+6. **Múltiplos Números:** Se houver múltiplos números na mesma célula (ex: 200 e 6 um abaixo do outro), cada um é um item separado.
 
+### 🎯 ESTRATÉGIA DE LEITURA
+1. Identifique o cabeçalho com as 8 categorias
+2. Para cada coluna (da esquerda para a direita):
+   - Leia todos os números de cima para baixo
+   - Cada número = 1 item com aquela categoria
+   - Pule para a próxima coluna
+3. NUNCA misture valores de colunas adjacentes
+
+### 📤 SAÍDA ESPERADA
+Retorne APENAS um JSON válido contendo um array de objetos. Sem markdown, sem explicações, sem texto extra.
+
+Formato EXATO:
 [
   { "categoria": "Pulseiras", "valor": 316, "quantidade": 1 },
   { "categoria": "Pulseiras", "valor": 214, "quantidade": 1 },
-  { "categoria": "Correntes", "valor": 884, "quantidade": 1 },
-  { "categoria": "Pingentes", "valor": 125, "quantidade": 1 }
+  { "categoria": "Correntes", "valor": 52, "quantidade": 1 },
+  { "categoria": "Anéis", "valor": 125, "quantidade": 1 }
 ]
 
-REGRAS CRÍTICAS:
-1. O número dentro da célula é o PREÇO (valor) em reais
-2. Cada célula com número gera UM item separado (quantidade sempre 1)
-3. Respeite RIGOROSAMENTE as colunas da tabela (não misture colunas)
-4. Use os nomes EXATOS das categorias: Pulseiras, Correntes, Pingentes, Anéis, Brincos G, Brincos I, Brincos M, Argolas
-5. Se a caligrafia for ambígua, use lógica de preços de mercado (joias custam entre R$15 e R$9999)
-6. Retorne APENAS o JSON array, sem explicações, sem markdown, sem texto extra
-7. Se não encontrar itens, retorne array vazio: []`;
+IMPORTANTE:
+- Use os nomes EXATOS das categorias: Pulseiras, Correntes, Pingentes, Anéis, Brincos G, Brincos I, Brincos M, Argolas
+- quantidade sempre = 1
+- valor = número inteiro (sem centavos)
+- Retorne APENAS o array JSON, sem comentários`;
 
 Deno.serve(async (req: Request) => {
-  console.log("\n=== NOVA REQUISIÇÃO OCR ===", new Date().toISOString());
+  console.log("\n=== NOVA REQUISIÇÃO OCR (Gemini 1.5 Pro) ===", new Date().toISOString());
 
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -75,7 +97,7 @@ Deno.serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "GOOGLE_API_KEY não configurada. Consulte GOOGLE_API_SETUP.md",
+          error: "Chave da API do Google não configurada. Consulte GOOGLE_API_SETUP.md",
         }),
         {
           status: 500,
@@ -117,10 +139,12 @@ Deno.serve(async (req: Request) => {
 
     console.log("✅ Base64:", (base64Image.length / 1024).toFixed(2) + "KB");
 
-    console.log("🤖 Inicializando Gemini 2.0 Flash Experimental...");
+    console.log("🤖 Inicializando Gemini 1.5 Pro (Raciocínio Espacial Avançado)...");
     const genAI = new GoogleGenerativeAI(googleApiKey);
+
+    // 🚀 MUDANÇA CRÍTICA: Usando 'gemini-1.5-pro' para melhor raciocínio espacial em tabelas
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash-exp",
+      model: "gemini-1.5-pro",
       generationConfig: {
         temperature: 0.1,
         topK: 32,
@@ -129,7 +153,7 @@ Deno.serve(async (req: Request) => {
       },
     });
 
-    console.log("🚀 Chamando Gemini API...");
+    console.log("🚀 Chamando Gemini 1.5 Pro com prompt estruturado...");
 
     const result = await model.generateContent([
       SYSTEM_PROMPT,
@@ -144,7 +168,7 @@ Deno.serve(async (req: Request) => {
     const response = await result.response;
     const text = response.text();
 
-    console.log("\n📥 Resposta Gemini:");
+    console.log("\n📥 Resposta Gemini Pro:");
     console.log(text);
 
     let items: ExtractedItem[];
@@ -174,6 +198,7 @@ Deno.serve(async (req: Request) => {
 
       console.log(`📦 ${items.length} itens parseados`);
 
+      // Validação e Normalização
       const validItems = items.filter(item => {
         const isValid = (
           item &&
@@ -190,7 +215,11 @@ Deno.serve(async (req: Request) => {
         }
 
         return isValid;
-      });
+      }).map(item => ({
+        ...item,
+        // Garante que a categoria tenha a primeira letra maiúscula
+        categoria: item.categoria.charAt(0).toUpperCase() + item.categoria.slice(1).toLowerCase()
+      }));
 
       items = validItems;
 
@@ -199,7 +228,7 @@ Deno.serve(async (req: Request) => {
         return new Response(
           JSON.stringify({
             success: false,
-            error: "Nenhum item detectado. Verifique se a foto está nítida e contém uma tabela.",
+            error: "Nenhum item detectado. Verifique se a foto está nítida e contém uma tabela clara.",
             rawResponse: text,
           }),
           {
@@ -210,11 +239,18 @@ Deno.serve(async (req: Request) => {
       }
 
       console.log(`\n✅ SUCESSO: ${items.length} itens válidos`);
-      console.log("Amostra:", items.slice(0, 3));
+      console.log("📊 Amostra:", items.slice(0, 5));
+
+      // Resumo por categoria
+      const resumo: { [key: string]: number } = {};
+      items.forEach(item => {
+        resumo[item.categoria] = (resumo[item.categoria] || 0) + 1;
+      });
+      console.log("📈 Resumo por categoria:", resumo);
 
     } catch (parseError) {
       console.error("❌ Erro parse:", parseError);
-      console.error("Texto:", text);
+      console.error("Texto original:", text);
       return new Response(
         JSON.stringify({
           success: false,
@@ -251,7 +287,7 @@ Deno.serve(async (req: Request) => {
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+      }
     );
   }
 });

@@ -25,21 +25,29 @@ export default function OCRPreviewModal({ items: initialItems, imageUrl, onConfi
   }, []);
 
   useEffect(() => {
-    if (categorias.length > 0 && items.length === 0) {
+    if (categorias.length > 0 && initialItems.length > 0 && items.length === 0) {
       const itemsComCategoria = initialItems.map(item => {
-        // Se o item já vem com categoria do OCR, usa ela
-        // Senão, usa a primeira categoria disponível
-        const categoriaItem = (item as any).categoria || categorias[0] || '';
+        const categoriaDoOCR = (item as any).categoria || '';
+
+        // Tenta encontrar a categoria exata ou aproximada na lista do sistema
+        const categoriaEncontrada = categorias.find(cat =>
+          cat.toLowerCase() === categoriaDoOCR.toLowerCase() || // Match exato ignorando case
+          cat.toLowerCase().includes(categoriaDoOCR.toLowerCase()) || // "Pulseiras" contém "Pulseira"
+          categoriaDoOCR.toLowerCase().includes(cat.toLowerCase())    // Vice-versa
+        );
+
+        // Se não achar, usa a primeira da lista como fallback (melhor que deixar vazio)
+        const categoriaFinal = categoriaEncontrada || categorias[0];
 
         return {
           ...item,
-          categoria: categoriaItem,
-          descricao: `${categoriaItem} - R$ ${item.valor.toFixed(2)}`
+          categoria: categoriaFinal,
+          descricao: `${categoriaFinal} - R$ ${item.valor.toFixed(2)}`
         };
       });
       setItems(itemsComCategoria);
     }
-  }, [categorias, initialItems]);
+  }, [categorias, initialItems, items.length]);
 
   const loadCategorias = async () => {
     try {
