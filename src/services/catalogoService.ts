@@ -145,17 +145,21 @@ export class CatalogoService {
         month: 'long',
         year: 'numeric'
       });
+      const dataTexto = dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1);
+      const dataComEspacos = dataTexto.split('').join(' ');
+
       doc.setFontSize(9);
       doc.setTextColor(...CatalogoService.COLORS.textLight);
-      doc.text(dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1), centerX, pageHeight - 30, {
-        align: 'center',
-        charSpace: 3
+      doc.text(dataComEspacos, centerX, pageHeight - 30, {
+        align: 'center'
       });
 
       doc.setFontSize(8);
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(...CatalogoService.COLORS.goldNoble);
-      doc.text('by Magold Ana Kelly', centerX, pageHeight - 20, { align: 'center' });
+      doc.text('by Magold Ana Kelly', centerX, pageHeight - 20, {
+        align: 'center'
+      });
     };
 
     const addHeader = (pageNum: number) => {
