@@ -3,7 +3,7 @@ import { supabase, Venda, Cliente } from '../../lib/supabase';
 import {
   Plus, Search, Eye, Edit2, Filter, Calendar, DollarSign,
   CheckCircle, Clock, XCircle, AlertTriangle, CreditCard, Wallet,
-  TrendingDown, RefreshCw, Download
+  TrendingDown, RefreshCw, Download, Ticket
 } from 'lucide-react';
 import NovaVendaModal from '../modals/NovaVendaModal';
 import DetalhesVendaModal from '../modals/DetalhesVendaModal';
@@ -18,6 +18,9 @@ interface VendaComCliente extends Venda {
   parcelas_atrasadas?: number;
   valor_total_devolvido?: number;
   numero_devolucoes?: number;
+  voucher_id?: string;
+  valor_voucher_utilizado?: number;
+  tipo_venda?: string;
 }
 
 type FilterStatus = 'todos' | 'pago' | 'pendente' | 'parcial' | 'atrasado';
@@ -444,14 +447,29 @@ export default function VendasView() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-charcoal">
-                          {venda.cliente_nome}
-                        </div>
-                        {venda.desconto_valor && venda.desconto_valor > 0 && (
-                          <div className="text-xs text-green-600 font-medium">
-                            Desconto: {formatCurrency(venda.desconto_valor)}
+                        <div className="flex items-center gap-2">
+                          <div>
+                            <div className="text-sm font-medium text-charcoal">
+                              {venda.cliente_nome}
+                            </div>
+                            {venda.desconto_valor && venda.desconto_valor > 0 && (
+                              <div className="text-xs text-green-600 font-medium">
+                                Desconto: {formatCurrency(venda.desconto_valor)}
+                              </div>
+                            )}
+                            {venda.valor_voucher_utilizado && venda.valor_voucher_utilizado > 0 && (
+                              <div className="text-xs text-purple-600 font-medium flex items-center gap-1">
+                                <Ticket className="w-3 h-3" />
+                                Voucher: {formatCurrency(venda.valor_voucher_utilizado)}
+                              </div>
+                            )}
                           </div>
-                        )}
+                          {venda.tipo_venda && venda.tipo_venda !== 'normal' && (
+                            <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
+                              {venda.tipo_venda === 'troca' ? 'TROCA' : 'GARANTIA'}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">

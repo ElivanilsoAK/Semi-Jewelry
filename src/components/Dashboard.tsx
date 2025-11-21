@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Package2, Users, ShoppingBag, LogOut, Home, Zap, CreditCard, FileText, Shield, Settings } from 'lucide-react';
+import { Package2, Users, ShoppingBag, LogOut, Home, Zap, CreditCard, FileText, Shield, Settings, Ticket } from 'lucide-react';
 import HomeView from './views/HomeView';
 import ClientesView from './views/ClientesView';
 import PanosView from './views/PanosView';
@@ -9,9 +9,10 @@ import PagamentosView from './views/PagamentosView';
 import RelatoriosView from './views/RelatoriosView';
 import GarantiasView from './views/GarantiasView';
 import ConfiguracoesView from './views/ConfiguracoesView';
+import VouchersView from './views/VouchersView';
 import VendaRapidaModal from './modals/VendaRapidaModal';
 
-type View = 'home' | 'clientes' | 'panos' | 'vendas' | 'pagamentos' | 'relatorios' | 'garantias' | 'configuracoes';
+type View = 'home' | 'clientes' | 'panos' | 'vendas' | 'pagamentos' | 'relatorios' | 'garantias' | 'vouchers' | 'configuracoes';
 
 export default function Dashboard() {
   const [currentView, setCurrentView] = useState<View>('home');
@@ -33,6 +34,7 @@ export default function Dashboard() {
     { id: 'vendas' as View, label: 'Vendas', icon: ShoppingBag },
     { id: 'pagamentos' as View, label: 'Pagamentos', icon: CreditCard },
     { id: 'garantias' as View, label: 'Garantias', icon: Shield },
+    { id: 'vouchers' as View, label: 'Vouchers', icon: Ticket },
     { id: 'relatorios' as View, label: 'Relatórios', icon: FileText },
     { id: 'configuracoes' as View, label: 'Configurações', icon: Settings },
   ];
@@ -134,6 +136,7 @@ export default function Dashboard() {
             {currentView === 'vendas' && <VendasView />}
             {currentView === 'pagamentos' && <PagamentosView />}
             {currentView === 'garantias' && <GarantiasView />}
+            {currentView === 'vouchers' && <VouchersView />}
             {currentView === 'relatorios' && <RelatoriosView />}
             {currentView === 'configuracoes' && <ConfiguracoesView />}
           </div>

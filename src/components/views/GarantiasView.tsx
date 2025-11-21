@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Plus, Search, RefreshCw, Check, X, ArrowRight, DollarSign, Edit2, Trash2 } from 'lucide-react';
+import { Shield, Plus, Search, RefreshCw, Check, X, ArrowRight, DollarSign, Edit2, Trash2, Ticket } from 'lucide-react';
 import { supabase, withUserId } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -16,6 +16,7 @@ interface Garantia {
   valor_item_antigo: number;
   valor_item_novo: number;
   created_at: string;
+  codigo_voucher?: string;
 }
 
 export default function GarantiasView() {
@@ -334,6 +335,15 @@ export default function GarantiasView() {
                       <p className="text-sm text-gold-ak mt-1">
                         Diferença: {formatCurrency(g.diferenca_valor)} - {g.forma_pagamento_diferenca?.toUpperCase()}
                       </p>
+                    )}
+                    {g.codigo_voucher && (
+                      <div className="flex items-center gap-2 mt-2 px-3 py-2 bg-purple-50 rounded-lg border border-purple-200">
+                        <Ticket className="w-4 h-4 text-purple-600" />
+                        <div>
+                          <p className="text-xs text-purple-600 font-medium">Voucher Gerado:</p>
+                          <p className="text-sm font-mono font-bold text-purple-700">{g.codigo_voucher}</p>
+                        </div>
+                      </div>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
