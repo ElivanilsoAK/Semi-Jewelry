@@ -93,9 +93,11 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
       } else {
         const dataWithUserId = await withUserId({
           pano_id: pano.id,
-          ...formData,
-          quantidade_total: formData.quantidade_inicial,
+          categoria: formData.categoria,
+          descricao: formData.descricao,
+          quantidade_inicial: formData.quantidade_inicial,
           quantidade_disponivel: formData.quantidade_inicial,
+          valor_unitario: formData.valor_unitario,
         });
         const { error } = await supabase
           .from('itens_pano')
