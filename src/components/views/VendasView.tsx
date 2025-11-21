@@ -8,6 +8,7 @@ import {
 import NovaVendaModal from '../modals/NovaVendaModal';
 import DetalhesVendaModal from '../modals/DetalhesVendaModal';
 import EditarVendaModal from '../modals/EditarVendaModal';
+import TableSkeleton from '../ui/TableSkeleton';
 
 interface VendaComCliente extends Venda {
   cliente: Cliente;
@@ -397,7 +398,7 @@ export default function VendasView() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-500">Carregando...</div>
+        <TableSkeleton />
       ) : filteredVendas.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           {searchTerm ? 'Nenhuma venda encontrada' : 'Nenhuma venda cadastrada'}

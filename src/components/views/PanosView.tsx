@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import PanoModal from '../modals/PanoModal';
 import ItensModal from '../modals/ItensModal';
+import TableSkeleton from '../ui/TableSkeleton';
 
 interface PanoDetalhado extends Pano {
   cliente_nome?: string;
@@ -359,7 +360,7 @@ export default function PanosView() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-500">Carregando...</div>
+        <TableSkeleton />
       ) : filteredPanos.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           Nenhum pano encontrado

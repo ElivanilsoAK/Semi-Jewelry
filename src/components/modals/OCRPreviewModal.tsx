@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Trash2, Plus } from 'lucide-react';
 import { ExtractedItem } from '../../services/ocrService';
 import { supabase } from '../../lib/supabase';
@@ -116,17 +117,43 @@ export default function OCRPreviewModal({ items: initialItems, imageUrl, onConfi
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-xl p-6">
-          <p>Carregando categorias...</p>
-        </div>
-      </div>
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="bg-white rounded-xl p-6"
+          >
+            <p>Carregando categorias...</p>
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-      <div className="bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col my-8">
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto"
+      >
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col my-8"
+        >
         <div className="p-4 md:p-6 border-b border-gray-200">
           <div className="flex justify-between items-start gap-4">
             <div>
@@ -302,8 +329,8 @@ export default function OCRPreviewModal({ items: initialItems, imageUrl, onConfi
               Confirmar e Salvar {items.length} {items.length === 1 ? 'Item' : 'Itens'}
             </button>
           </div>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
