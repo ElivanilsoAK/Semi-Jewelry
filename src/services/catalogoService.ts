@@ -73,50 +73,37 @@ export class CatalogoService {
       CatalogoService.drawMarbleTexture(doc, 0, 0, pageWidth, pageHeight);
 
       const centerX = pageWidth / 2;
-      const centerY = pageHeight / 2 - 20;
-
-      const logoSize = 45;
-      const circleRadius = logoSize / 2 + 5;
-
-      doc.setFillColor(...CatalogoService.COLORS.offWhite);
-      doc.circle(centerX, centerY - 30, circleRadius, 'F');
-
-      doc.setDrawColor(...CatalogoService.COLORS.goldNoble);
-      doc.setLineWidth(3);
-      doc.circle(centerX, centerY - 30, circleRadius, 'S');
-
-      doc.setDrawColor(...CatalogoService.COLORS.goldNoble);
-      doc.setLineWidth(1);
-      doc.circle(centerX, centerY - 30, circleRadius - 2, 'S');
+      const centerY = pageHeight / 2 - 30;
 
       try {
         const logoPath = '/esfera logo.png';
         const logoImg = await CatalogoService.loadImage(logoPath);
+        const logoSize = 70;
         const logoX = centerX - logoSize / 2;
-        const logoY = centerY - 30 - logoSize / 2;
+        const logoY = centerY - logoSize / 2 - 20;
         doc.addImage(logoImg, 'PNG', logoX, logoY, logoSize, logoSize, undefined, 'FAST');
       } catch (error) {
         console.log('Logo não carregada');
       }
 
       doc.setFillColor(...CatalogoService.COLORS.goldNoble);
-      const lineWidth = 80;
-      doc.rect(centerX - lineWidth / 2, centerY + 25, lineWidth, 1.5, 'F');
+      const lineWidth = 120;
+      doc.rect(centerX - lineWidth / 2, centerY + 60, lineWidth, 2, 'F');
 
       doc.setTextColor(...CatalogoService.COLORS.black);
-      doc.setFontSize(52);
+      doc.setFontSize(64);
       doc.setFont('helvetica', 'bold');
-      doc.text(nomeConsultora.toUpperCase(), centerX, centerY + 45, {
+      doc.text('SPHERE', centerX, centerY + 85, {
         align: 'center',
-        charSpace: 10
+        charSpace: 12
       });
 
-      doc.setFontSize(11);
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...CatalogoService.COLORS.textMedium);
-      doc.text('CATÁLOGO PREMIUM', centerX, centerY + 58, {
+      doc.text('C A T Á L O G O   P R E M I U M', centerX, centerY + 100, {
         align: 'center',
-        charSpace: 6
+        charSpace: 4
       });
 
       const dataFormatada = new Date().toLocaleDateString('pt-BR', {
