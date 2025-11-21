@@ -25,7 +25,7 @@ interface ItemCarrinho {
   quantidade: number;
 }
 
-type FormaPagamento = 'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito';
+type FormaPagamento = 'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito' | 'negociacao';
 type TipoDesconto = 'percentual' | 'fixo';
 
 export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
@@ -387,12 +387,13 @@ Obrigado pela preferência!
     { value: 'dinheiro', label: 'Dinheiro', icon: DollarSign },
     { value: 'pix', label: 'PIX', icon: TrendingUp },
     { value: 'cartao_credito', label: 'Crédito', icon: CreditCard },
-    { value: 'cartao_debito', label: 'Débito', icon: CreditCard }
+    { value: 'cartao_debito', label: 'Débito', icon: CreditCard },
+    { value: 'negociacao', label: 'Negociação', icon: CreditCard }
   ];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl max-w-6xl w-full max-h-[95vh] overflow-hidden flex flex-col shadow-2xl">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
+      <div className="bg-white rounded-xl max-w-6xl w-full my-4 max-h-[calc(100vh-2rem)] overflow-hidden flex flex-col shadow-2xl">
         <div className="flex justify-between items-center p-6 border-b border-line bg-gradient-to-r from-gold-ak to-amber-warning">
           <div className="flex items-center gap-3">
             <ShoppingCart className="w-7 h-7 text-white" />
@@ -456,7 +457,7 @@ Obrigado pela preferência!
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-96 overflow-y-auto p-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 sm:max-h-96 overflow-y-auto p-2">
                 {filteredItems.map(item => (
                   <div
                     key={item.id}
@@ -595,7 +596,7 @@ Obrigado pela preferência!
 
                     <div className="space-y-3 mt-4 pt-4 border-t border-line">
                       <label className="block text-sm font-bold text-charcoal">Forma de Pagamento</label>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         {formasPagamento.map(forma => {
                           const Icon = forma.icon;
                           return (

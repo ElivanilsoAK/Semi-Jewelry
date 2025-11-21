@@ -29,6 +29,7 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
 
   const [numeroParcelas, setNumeroParcelas] = useState(1);
   const [datasParcelas, setDatasParcelas] = useState<string[]>(['']);
+  const [valoresParcelas, setValoresParcelas] = useState<number[]>([]);
   const [formaPagamento, setFormaPagamento] = useState('dinheiro');
   const [desconto, setDesconto] = useState(0);
   const [tipoDesconto, setTipoDesconto] = useState<'percentual' | 'fixo'>('percentual');
@@ -50,7 +51,12 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
   useEffect(() => {
     const dates = Array(numeroParcelas).fill('');
     setDatasParcelas(dates);
-  }, [numeroParcelas]);
+    if (formaPagamento === 'negociacao') {
+      const valorTotal = calcularValorTotal();
+      const valorParcela = valorTotal / numeroParcelas;
+      setValoresParcelas(Array(numeroParcelas).fill(valorParcela));
+    }
+  }, [numeroParcelas, formaPagamento]);
 
   const loadClientes = async () => {
     const { data } = await supabase.from('clientes').select('*').order('nome');
@@ -226,7 +232,9 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
       const pagamentosBase = datasParcelas.map((data, index) => ({
         venda_id: venda.id,
         numero_parcela: index + 1,
-        valor_parcela: valorParcela,
+        valor_parcela: formaPagamento === 'negociacao' && valoresParcelas[index]
+          ? valoresParcelas[index]
+          : valorParcela,
         data_vencimento: data || new Date().toISOString().split('T')[0],
         status: numeroParcelas === 1 && index === 0 ? 'pago' : 'pendente',
       }));
@@ -261,8 +269,8 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
   const nomePano = panos.find(p => p.id === panoSelecionado)?.nome || '';
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
+      <div className="bg-white rounded-xl max-w-4xl w-full my-4 max-h-[calc(100vh-2rem)] overflow-hidden flex flex-col shadow-2xl">
         <div className="bg-gradient-to-r from-gold-ak to-amber-warning p-6 text-white">
           <div className="flex justify-between items-center">
             <div>
@@ -537,6 +545,7 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
                     <option value="cartao_debito">💳 Cartão de Débito</option>
                     <option value="transferencia">🏦 Transferência</option>
                     <option value="boleto">📄 Boleto</option>
+                    <option value="negociacao">🤝 Negociação (valores diferentes por parcela)</option>
                   </select>
                 </div>
 
@@ -584,12 +593,14 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
               {numeroParcelas > 1 && (
                 <div>
                   <label className="block text-sm font-bold text-charcoal mb-3">
-                    Datas de Vencimento das Parcelas
+                    {formaPagamento === 'negociacao'
+                      ? 'Configure cada parcela (data e valor)'
+                      : 'Datas de Vencimento das Parcelas'}
                   </label>
-                  <div className="space-y-3 max-h-60 overflow-y-auto">
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
                     {datasParcelas.map((data, index) => (
-                      <div key={index} className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
-                        <span className="text-sm font-bold text-charcoal w-24">
+                      <div key={index} className="flex items-center gap-2 bg-gray-50 p-3 rounded-lg">
+                        <span className="text-sm font-bold text-charcoal w-20">
                           Parcela {index + 1}:
                         </span>
                         <input
@@ -600,14 +611,54 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
                             newDatas[index] = e.target.value;
                             setDatasParcelas(newDatas);
                           }}
-                          className="flex-1 px-3 py-2 border-2 border-line rounded-lg focus:ring-2 focus:ring-gold-ak focus:border-transparent font-medium"
+                          className="flex-1 px-3 py-2 border-2 border-line rounded-lg focus:ring-2 focus:ring-gold-ak focus:border-transparent font-medium text-sm"
                         />
-                        <span className="text-sm font-bold text-charcoal">
-                          R$ {(valorTotalMemo / numeroParcelas).toFixed(2)}
-                        </span>
+                        {formaPagamento === 'negociacao' ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-medium text-gray-600">R$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={valoresParcelas[index] || 0}
+                              onChange={(e) => {
+                                const newValores = [...valoresParcelas];
+                                newValores[index] = parseFloat(e.target.value) || 0;
+                                setValoresParcelas(newValores);
+                              }}
+                              className="w-24 px-2 py-2 border-2 border-gold-ak rounded-lg focus:ring-2 focus:ring-gold-ak font-bold text-sm"
+                              placeholder="0.00"
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-sm font-bold text-charcoal w-24 text-right">
+                            R$ {(valorTotalMemo / numeroParcelas).toFixed(2)}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
+                  {formaPagamento === 'negociacao' && (
+                    <div className="mt-3 p-3 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="font-medium text-blue-900">
+                          Total das parcelas:
+                        </span>
+                        <span className={`font-bold ${
+                          valoresParcelas.reduce((a, b) => a + (b || 0), 0).toFixed(2) === valorTotalMemo.toFixed(2)
+                            ? 'text-green-600'
+                            : 'text-red-600'
+                        }`}>
+                          R$ {valoresParcelas.reduce((a, b) => a + (b || 0), 0).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="text-xs text-blue-700 mt-1">
+                        {valoresParcelas.reduce((a, b) => a + (b || 0), 0).toFixed(2) === valorTotalMemo.toFixed(2)
+                          ? '✅ Valores conferem!'
+                          : `⚠️ Diferença: R$ ${Math.abs(valoresParcelas.reduce((a, b) => a + (b || 0), 0) - valorTotalMemo).toFixed(2)}`}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
