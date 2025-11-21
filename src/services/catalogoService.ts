@@ -73,37 +73,58 @@ export class CatalogoService {
       CatalogoService.drawMarbleTexture(doc, 0, 0, pageWidth, pageHeight);
 
       const centerX = pageWidth / 2;
-      const centerY = pageHeight / 2 - 30;
+      const centerY = pageHeight / 2 - 50;
+
+      const logoRadius = 30;
+      const borderRadius = logoRadius + 3;
+
+      doc.setFillColor(255, 255, 255);
+      doc.circle(centerX, centerY, borderRadius + 1, 'F');
+
+      doc.setDrawColor(...CatalogoService.COLORS.goldNoble);
+      doc.setLineWidth(2);
+      doc.circle(centerX, centerY, borderRadius, 'S');
 
       try {
         const logoPath = '/esfera logo.png';
         const logoImg = await CatalogoService.loadImage(logoPath);
-        const logoSize = 70;
-        const logoX = centerX - logoSize / 2;
-        const logoY = centerY - logoSize / 2 - 20;
-        doc.addImage(logoImg, 'PNG', logoX, logoY, logoSize, logoSize, undefined, 'FAST');
+
+        doc.saveGraphicsState();
+
+        const clipRadius = logoRadius - 1;
+        doc.circle(centerX, centerY, clipRadius, 'S');
+        doc.clip();
+        doc.discardPath();
+
+        const imgSize = clipRadius * 2;
+        doc.addImage(logoImg, 'PNG', centerX - clipRadius, centerY - clipRadius, imgSize, imgSize, undefined, 'FAST');
+
+        doc.restoreGraphicsState();
       } catch (error) {
         console.log('Logo não carregada');
       }
 
+      const lineY = centerY + borderRadius + 30;
+      const lineWidth = contentWidth * 0.65;
       doc.setFillColor(...CatalogoService.COLORS.goldNoble);
-      const lineWidth = 120;
-      doc.rect(centerX - lineWidth / 2, centerY + 60, lineWidth, 2, 'F');
+      doc.rect(centerX - lineWidth / 2, lineY, lineWidth, 2, 'F');
 
+      const titleY = lineY + 20;
       doc.setTextColor(...CatalogoService.COLORS.black);
-      doc.setFontSize(64);
+      doc.setFontSize(60);
       doc.setFont('helvetica', 'bold');
-      doc.text('SPHERE', centerX, centerY + 85, {
+      doc.text('SPHERE', centerX, titleY, {
         align: 'center',
-        charSpace: 12
+        charSpace: 14
       });
 
-      doc.setFontSize(12);
+      const subtitleY = titleY + 12;
+      doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...CatalogoService.COLORS.textMedium);
-      doc.text('C A T Á L O G O   P R E M I U M', centerX, centerY + 100, {
+      doc.text('C A T Á L O G O   P R E M I U M', centerX, subtitleY, {
         align: 'center',
-        charSpace: 4
+        charSpace: 5
       });
 
       const dataFormatada = new Date().toLocaleDateString('pt-BR', {
