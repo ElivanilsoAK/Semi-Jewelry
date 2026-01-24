@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase, Venda, Cliente, ItemVenda, ItemPano, Pagamento } from '../../lib/supabase';
-import { X, CheckCircle, Printer, Download, Send, Image } from 'lucide-react';
+import { X, CheckCircle, Printer, Download, Image } from 'lucide-react';
 import { ComprovanteService } from '../../services/comprovanteService';
 
 interface VendaComCliente extends Venda {
@@ -147,7 +147,7 @@ export default function DetalhesVendaModal({ venda, onClose }: DetalhesVendaModa
       alert('Erro ao preparar dados do comprovante');
       return;
     }
-    ComprovanteService.imprimirComprovante(dados);
+    ComprovanteService.imprimirPDF(dados);
   };
 
   const handleDownloadPDF = () => {
@@ -159,14 +159,7 @@ export default function DetalhesVendaModal({ venda, onClose }: DetalhesVendaModa
     ComprovanteService.downloadPDF(dados);
   };
 
-  const handleEnviarWhatsApp = () => {
-    const dados = prepararDadosComprovante();
-    if (!dados) {
-      alert('Erro ao preparar dados do comprovante');
-      return;
-    }
-    ComprovanteService.enviarWhatsApp(dados);
-  };
+
 
   const handleEnviarWhatsAppImagem = async () => {
     const dados = prepararDadosComprovante();
@@ -305,11 +298,10 @@ export default function DetalhesVendaModal({ venda, onClose }: DetalhesVendaModa
                     </span>
                     <button
                       onClick={() => handleMarcarPagamento(pagamento.id, pagamento.status === 'pendente')}
-                      className={`p-2 rounded-lg transition-colors ${
-                        pagamento.status === 'pago'
-                          ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
-                      }`}
+                      className={`p-2 rounded-lg transition-colors ${pagamento.status === 'pago'
+                        ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
+                        }`}
                       title={pagamento.status === 'pago' ? 'Marcar como pendente' : 'Marcar como pago'}
                     >
                       <CheckCircle className="w-5 h-5" />

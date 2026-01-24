@@ -159,10 +159,10 @@ export default function Login() {
             {loading
               ? 'Aguarde...'
               : isForgotPassword
-              ? 'Enviar Link de Recuperação'
-              : isSignUp
-              ? 'Criar Conta'
-              : 'Entrar'}
+                ? 'Enviar Link de Recuperação'
+                : isSignUp
+                  ? 'Criar Conta'
+                  : 'Entrar'}
           </button>
         </form>
 
@@ -184,7 +184,7 @@ export default function Login() {
           <p className="text-xs text-center text-gray-medium">
             Sistema de Gestão para Semi-Joias
             <br />
-            <span className="font-semibold text-gold-ak">SPHERE</span> © 2025
+            <span className="font-semibold text-gold-ak">SPHERE</span> © 2026
           </p>
         </div>
       </div>

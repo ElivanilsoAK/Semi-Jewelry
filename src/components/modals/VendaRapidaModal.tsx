@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase, withUserId } from '../../lib/supabase';
 import {
   X, Search, Plus, Minus, Trash2, ShoppingCart, CreditCard,
-  Percent, DollarSign, Printer, Send, TrendingUp, Image as ImageIcon, Download, Copy
+  Percent, DollarSign, TrendingUp, Image as ImageIcon
 } from 'lucide-react';
 import { ComprovanteService } from '../../services/comprovanteService';
 
@@ -43,7 +43,6 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
   const [tipoDesconto, setTipoDesconto] = useState<TipoDesconto>('percentual');
   const [desconto, setDesconto] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [datasPersonalizadas, setDatasPersonalizadas] = useState<string[]>([]);
 
   useEffect(() => {
@@ -221,7 +220,7 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
 
   const handleImprimir = (venda: any, pagamentosVenda: any[]) => {
     const dados = prepararDadosComprovante(venda, pagamentosVenda);
-    ComprovanteService.imprimirComprovante(dados);
+    ComprovanteService.imprimirPDF(dados);
   };
 
   const handleDownloadPDF = (venda: any, pagamentosVenda: any[]) => {
@@ -229,9 +228,10 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
     ComprovanteService.downloadPDF(dados);
   };
 
-  const handleEnviarWhatsApp = (venda: any, pagamentosVenda: any[]) => {
+  const handleEnviarWhatsApp = async (venda: any, pagamentosVenda: any[]) => {
     const dados = prepararDadosComprovante(venda, pagamentosVenda);
-    ComprovanteService.enviarWhatsApp(dados);
+    // Usar envio de imagem por padrão (Premium)
+    await ComprovanteService.enviarWhatsAppImagem(dados);
   };
 
   const handleSubmit = async () => {
@@ -249,6 +249,21 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
 
     setLoading(true);
     try {
+      // 1. Validar estoques novamente antes de prosseguir
+      for (const item of carrinho) {
+        const { data: itemAtual } = await supabase
+          .from('itens_pano')
+          .select('quantidade_disponivel, descricao')
+          .eq('id', item.itemId)
+          .single();
+
+        if (!itemAtual) throw new Error(`Item removido ou não encontrado: ${item.itemId}`);
+
+        if (itemAtual.quantidade_disponivel < item.quantidade) {
+          throw new Error(`Estoque insuficiente para "${itemAtual.descricao}". Disponível: ${itemAtual.quantidade_disponivel}, Solicitado: ${item.quantidade}`);
+        }
+      }
+
       const statusPagamento = tipoVenda === 'avista' ? 'pago' : valorEntrada >= total ? 'pago' : 'pendente';
       const subtotal = calcularSubtotal();
       const valorDesconto = calcularDesconto();
@@ -320,7 +335,11 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
           }));
         }
 
-        const valorParcela = valorRestante / numeroParcelas;
+        // Cálculo preciso das parcelas para evitar erros de centavos
+        const valorParcelaBase = Math.floor((valorRestante / numeroParcelas) * 100) / 100;
+        let somaParcelas = valorParcelaBase * numeroParcelas;
+        const diferenca = Math.round((valorRestante - somaParcelas) * 100) / 100;
+
         for (let i = 0; i < numeroParcelas; i++) {
           let dataVencimento: string;
 
@@ -332,13 +351,16 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
             dataVencimento = data.toISOString().split('T')[0];
           }
 
+          // Adiciona a diferença na primeira parcela (ou última, se preferir)
+          const valorEstaParcela = i === 0 ? Number((valorParcelaBase + diferenca).toFixed(2)) : valorParcelaBase;
+
           pagamentos.push(await withUserId({
             venda_id: venda.id,
             numero_parcela: parcelaNum++,
-            valor_parcela: valorParcela,
+            valor_parcela: valorEstaParcela, // Usar o valor calculado com ajuste
             data_vencimento: dataVencimento,
             status: 'pendente',
-            valor_original: valorParcela
+            valor_original: valorEstaParcela
           }));
         }
       }
@@ -346,12 +368,22 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
       const { error: pagamentosError } = await supabase.from('pagamentos').insert(pagamentos);
       if (pagamentosError) throw pagamentosError;
 
+      // Decrementar estoque usando RPC para segurança (concorrência)
       for (const item of carrinho) {
-        const produto = items.find(i => i.id === item.itemId)!;
-        await supabase
-          .from('itens_pano')
-          .update({ quantidade_disponivel: produto.quantidade_disponivel - item.quantidade })
-          .eq('id', item.itemId);
+        const { error: updateError } = await supabase.rpc('decrement_stock', {
+          item_id: item.itemId,
+          amount: item.quantidade
+        });
+
+        if (updateError) {
+          console.error('Erro ao decrementar via RPC, tentando método fallback:', updateError);
+          // Fallback para update direto se RPC falhar (não ideal, mas mantém compatibilidade)
+          const produto = items.find(i => i.id === item.itemId)!;
+          await supabase
+            .from('itens_pano')
+            .update({ quantidade_disponivel: produto.quantidade_disponivel - item.quantidade })
+            .eq('id', item.itemId);
+        }
       }
 
       alert('✅ Venda realizada com sucesso!');
@@ -374,7 +406,7 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
       onClose();
     } catch (error) {
       console.error('Erro:', error);
-      alert('Erro ao realizar venda');
+      alert(`Erro ao realizar venda: ${(error as Error).message}`);
     } finally {
       setLoading(false);
     }
@@ -551,21 +583,19 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
                       <div className="flex gap-2">
                         <button
                           onClick={() => setTipoDesconto('percentual')}
-                          className={`flex-1 px-3 py-2 rounded-lg border-2 transition-all text-sm font-medium ${
-                            tipoDesconto === 'percentual'
-                              ? 'border-gold-ak bg-silk text-charcoal'
-                              : 'border-line hover:border-gray-300'
-                          }`}
+                          className={`flex-1 px-3 py-2 rounded-lg border-2 transition-all text-sm font-medium ${tipoDesconto === 'percentual'
+                            ? 'border-gold-ak bg-silk text-charcoal'
+                            : 'border-line hover:border-gray-300'
+                            }`}
                         >
                           <Percent className="w-4 h-4 mx-auto" />
                         </button>
                         <button
                           onClick={() => setTipoDesconto('fixo')}
-                          className={`flex-1 px-3 py-2 rounded-lg border-2 transition-all text-sm font-medium ${
-                            tipoDesconto === 'fixo'
-                              ? 'border-gold-ak bg-silk text-charcoal'
-                              : 'border-line hover:border-gray-300'
-                          }`}
+                          className={`flex-1 px-3 py-2 rounded-lg border-2 transition-all text-sm font-medium ${tipoDesconto === 'fixo'
+                            ? 'border-gold-ak bg-silk text-charcoal'
+                            : 'border-line hover:border-gray-300'
+                            }`}
                         >
                           <DollarSign className="w-4 h-4 mx-auto" />
                         </button>
@@ -600,11 +630,10 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
                             <button
                               key={forma.value}
                               onClick={() => setFormaPagamento(forma.value)}
-                              className={`px-3 py-2 rounded-lg border-2 transition-all text-sm font-medium ${
-                                formaPagamento === forma.value
-                                  ? 'border-gold-ak bg-silk text-charcoal'
-                                  : 'border-line hover:border-gray-300'
-                              }`}
+                              className={`px-3 py-2 rounded-lg border-2 transition-all text-sm font-medium ${formaPagamento === forma.value
+                                ? 'border-gold-ak bg-silk text-charcoal'
+                                : 'border-line hover:border-gray-300'
+                                }`}
                             >
                               <Icon className="w-4 h-4 mx-auto mb-1" />
                               {forma.label}
@@ -616,21 +645,19 @@ export default function VendaRapidaModal({ onClose }: { onClose: () => void }) {
                       <div className="flex gap-2">
                         <button
                           onClick={() => setTipoVenda('avista')}
-                          className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all font-medium ${
-                            tipoVenda === 'avista'
-                              ? 'border-gold-ak bg-silk text-charcoal'
-                              : 'border-line hover:border-gray-300'
-                          }`}
+                          className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all font-medium ${tipoVenda === 'avista'
+                            ? 'border-gold-ak bg-silk text-charcoal'
+                            : 'border-line hover:border-gray-300'
+                            }`}
                         >
                           À Vista
                         </button>
                         <button
                           onClick={() => setTipoVenda('parcelado')}
-                          className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all font-medium ${
-                            tipoVenda === 'parcelado'
-                              ? 'border-gold-ak bg-silk text-charcoal'
-                              : 'border-line hover:border-gray-300'
-                          }`}
+                          className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all font-medium ${tipoVenda === 'parcelado'
+                            ? 'border-gold-ak bg-silk text-charcoal'
+                            : 'border-line hover:border-gray-300'
+                            }`}
                         >
                           Parcelado
                         </button>

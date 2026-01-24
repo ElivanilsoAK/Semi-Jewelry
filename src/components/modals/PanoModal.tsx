@@ -48,6 +48,19 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+
+      // Validação de tamanho (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('❌ O arquivo é muito grande! Tamanho máximo: 10MB. Tente uma foto com resolução menor.');
+        return;
+      }
+
+      // Validação de tipo
+      if (!['image/jpeg', 'image/png', 'image/webp', 'image/heic'].includes(file.type)) {
+        alert('❌ Formato de arquivo não suportado. Use JPG, PNG ou WebP.');
+        return;
+      }
+
       setPhotoFile(file);
 
       const reader = new FileReader();
@@ -66,9 +79,17 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
 
       const { error: uploadError } = await supabase.storage
         .from('fotos')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        if (uploadError.message.includes('Payload too large')) {
+          throw new Error('A imagem é muito grande para o servidor. Tente reduzir a resolução.');
+        }
+        throw uploadError;
+      }
 
       const { data } = supabase.storage
         .from('fotos')
@@ -77,6 +98,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
       return data.publicUrl;
     } catch (error) {
       console.error('Erro ao fazer upload:', error);
+      alert(`Erro ao enviar foto: ${(error as Error).message}`);
       return null;
     }
   };

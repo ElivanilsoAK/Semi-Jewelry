@@ -29,10 +29,6 @@ interface DadosComprovante {
 }
 
 export class ComprovanteService {
-  private static readonly COR_PRIMARIA = '#D4AF37';
-  private static readonly COR_SECUNDARIA = '#B8941F';
-  private static readonly COR_TEXTO = '#2D3748';
-  private static readonly COR_TEXTO_CLARO = '#718096';
 
   static gerarPDF(dados: DadosComprovante): jsPDF {
     const doc = new jsPDF({
@@ -43,275 +39,258 @@ export class ComprovanteService {
 
     const pageWidth = 210;
     const pageHeight = 297;
-    const margin = 20;
+    const margin = 15;
     let y = margin;
 
     const nomeLoja = dados.nomeLoja || 'SPHERE';
 
-    doc.setFillColor(212, 175, 55);
-    doc.rect(0, 0, pageWidth, 50, 'F');
+    // Cores e Estilos
+    const primaryColor = [212, 175, 55]; // Gold #D4AF37
+    const secondaryColor = [45, 55, 72]; // Dark Gray #2D3748
+    const lightGray = [247, 250, 252]; // Light Gray #F7FAFC
+    const borderColor = [226, 232, 240]; // Border #E2E8F0
 
+    // --- Header ---
+    // Barras decorativas superiores
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.rect(0, 0, pageWidth, 4, 'F');
+
+    // Logo Placeholder (Círculo dourado com texto se não tiver imagem)
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.circle(pageWidth / 2, 25, 12, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(32);
-    doc.setFont('helvetica', 'bold');
-    doc.text(nomeLoja, pageWidth / 2, y + 15, { align: 'center' });
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Semijoias de Qualidade Premium', pageWidth / 2, y + 25, { align: 'center' });
-
-    y = 60;
-
-    doc.setTextColor(45, 55, 72);
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text('COMPROVANTE DE VENDA', pageWidth / 2, y, { align: 'center' });
-
-    y += 15;
-    doc.setFillColor(212, 175, 55);
-    doc.rect(margin, y, pageWidth - 2 * margin, 0.5, 'F');
-    y += 10;
-
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(113, 128, 150);
-
-    const vendaInfo = [
-      ['Venda:', `#${dados.vendaId.slice(0, 8).toUpperCase()}`],
-      ['Data:', new Date(dados.data).toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })],
-    ];
-
-    vendaInfo.forEach(([label, value]) => {
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(113, 128, 150);
-      doc.text(label, margin, y);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(45, 55, 72);
-      doc.text(value, margin + 35, y);
-      y += 7;
-    });
-
-    y += 5;
-    doc.setFillColor(249, 250, 251);
-    doc.rect(margin, y, pageWidth - 2 * margin, 25, 'F');
-
-    doc.setFillColor(212, 175, 55);
-    doc.rect(margin, y, 3, 25, 'F');
-
-    y += 8;
-    doc.setFontSize(10);
-    doc.setTextColor(113, 128, 150);
-    doc.setFont('helvetica', 'bold');
-    doc.text('CLIENTE', margin + 8, y);
-
-    y += 7;
-    doc.setFontSize(12);
-    doc.setTextColor(45, 55, 72);
-    doc.setFont('helvetica', 'bold');
-    doc.text(dados.clienteNome, margin + 8, y);
-
-    if (dados.clienteTelefone) {
-      y += 6;
-      doc.setFontSize(10);
-      doc.setTextColor(113, 128, 150);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`📱 ${dados.clienteTelefone}`, margin + 8, y);
-    }
-
-    y += 15;
-
-    doc.setFillColor(212, 175, 55);
-    doc.rect(margin, y, pageWidth - 2 * margin, 10, 'F');
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-
-    const colItem = margin + 5;
-    const colQtd = pageWidth - margin - 95;
-    const colUnit = pageWidth - margin - 65;
-    const colTotal = pageWidth - margin - 35;
-
-    doc.text('PRODUTO', colItem, y + 7);
-    doc.text('QTD', colQtd, y + 7, { align: 'center' });
-    doc.text('UNIT.', colUnit, y + 7, { align: 'right' });
-    doc.text('TOTAL', colTotal, y + 7, { align: 'right' });
-
-    y += 12;
-
-    doc.setTextColor(45, 55, 72);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-
-    dados.itens.forEach((item, index) => {
-      if (y > pageHeight - 80) {
-        doc.addPage();
-        y = margin;
-      }
-
-      if (index % 2 === 0) {
-        doc.setFillColor(249, 250, 251);
-        doc.rect(margin, y - 4, pageWidth - 2 * margin, 10, 'F');
-      }
-
-      doc.setFont('helvetica', 'bold');
-      doc.text(item.descricao, colItem, y);
-
-      if (item.categoria) {
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
-        doc.setTextColor(113, 128, 150);
-        doc.text(item.categoria, colItem, y + 4);
-        doc.setFontSize(10);
-        doc.setTextColor(45, 55, 72);
-      }
-
-      doc.setFont('helvetica', 'normal');
-      doc.text(item.quantidade.toString(), colQtd, y, { align: 'center' });
-      doc.text(`R$ ${item.valor_unitario.toFixed(2)}`, colUnit, y, { align: 'right' });
-
-      doc.setFont('helvetica', 'bold');
-      doc.text(`R$ ${item.valor_total.toFixed(2)}`, colTotal, y, { align: 'right' });
-
-      y += item.categoria ? 12 : 10;
-    });
-
-    y += 5;
-    doc.setDrawColor(212, 175, 55);
-    doc.setLineWidth(0.5);
-    doc.line(margin, y, pageWidth - margin, y);
-    y += 10;
-
-    const totaisCol1 = margin + 10;
-    const totaisCol2 = pageWidth - margin - 10;
-
-    if (dados.desconto > 0) {
-      doc.setTextColor(113, 128, 150);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.text('Subtotal:', totaisCol1, y);
-      doc.text(`R$ ${dados.subtotal.toFixed(2)}`, totaisCol2, y, { align: 'right' });
-      y += 7;
-
-      doc.setTextColor(220, 38, 38);
-      doc.text('Desconto:', totaisCol1, y);
-      doc.text(`- R$ ${dados.desconto.toFixed(2)}`, totaisCol2, y, { align: 'right' });
-      y += 10;
-    }
-
-    doc.setFillColor(212, 175, 55);
-    doc.roundedRect(margin, y - 2, pageWidth - 2 * margin, 12, 2, 2, 'F');
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
-    doc.text('TOTAL:', totaisCol1, y + 7);
-    doc.text(`R$ ${dados.total.toFixed(2)}`, totaisCol2, y + 7, { align: 'right' });
+    doc.setFont('helvetica', 'bold');
+    doc.text('S', pageWidth / 2, 28, { align: 'center' });
 
-    y += 20;
+    // Nome da Loja
+    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+    doc.setFontSize(24);
+    doc.setFont('times', 'bold'); // Fonte serifada para luxo
+    doc.text(nomeLoja.toUpperCase(), pageWidth / 2, 45, { align: 'center' });
 
-    doc.setFillColor(249, 250, 251);
-    doc.rect(margin, y, pageWidth - 2 * margin, 15, 'F');
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text('SEMIJOIAS DE LUXO & ACESSÓRIOS', pageWidth / 2, 52, { align: 'center' });
 
-    y += 8;
-    doc.setTextColor(113, 128, 150);
+    y = 65;
+
+    // --- Grid Info Venda ---
+    // Caixa Principal
+    doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(margin, y, pageWidth - (margin * 2), 35, 2, 2, 'FD');
+
+    // Título da Caixa
+    doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+    doc.rect(margin + 0.2, y + 0.2, pageWidth - (margin * 2) - 0.4, 8, 'F');
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text('FORMA DE PAGAMENTO:', margin + 5, y);
+    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+    doc.text('DETALHES DO PEDIDO', margin + 5, y + 5.5);
 
-    doc.setTextColor(45, 55, 72);
-    doc.setFont('helvetica', 'normal');
+    // Dados da Venda (Grid 2 colunas)
+    y += 15;
     doc.setFontSize(10);
-    const formaPgtoTexto = dados.formaPagamento.toUpperCase().replace('_', ' ');
-    doc.text(formaPgtoTexto, margin + 60, y);
+
+    // Coluna 1
+    doc.setFont('helvetica', 'bold');
+    doc.text('Venda:', margin + 5, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`#${dados.vendaId.slice(0, 8).toUpperCase()}`, margin + 25, y);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('Data:', margin + 5, y + 6);
+    doc.setFont('helvetica', 'normal');
+    doc.text(new Date(dados.data).toLocaleDateString('pt-BR'), margin + 25, y + 6);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('Hora:', margin + 5, y + 12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(new Date(dados.data).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), margin + 25, y + 12);
+
+    // Coluna 2 (Cliente)
+    const col2X = pageWidth / 2 + 10;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Cliente:', col2X, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text(dados.clienteNome, col2X + 20, y);
+
+    if (dados.clienteTelefone) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('Tel:', col2X, y + 6);
+      doc.setFont('helvetica', 'normal');
+      doc.text(dados.clienteTelefone, col2X + 20, y + 6);
+    }
+
+    y += 30;
+
+    // --- Tabela ITENS ---
+    // Cabeçalho da Tabela
+    const headerHeight = 8;
+    doc.setFillColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+    doc.rect(margin, y, pageWidth - (margin * 2), headerHeight, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+
+    const colProd = margin + 5;
+    const colQtd = pageWidth - margin - 50;
+    const colUnit = pageWidth - margin - 30;
+    const colTotal = pageWidth - margin - 5;
+
+    doc.text('DESCRIÇÃO', colProd, y + 5.5);
+    doc.text('QTD', colQtd, y + 5.5, { align: 'center' });
+    doc.text('UNIT.', colUnit, y + 5.5, { align: 'right' });
+    doc.text('TOTAL', colTotal, y + 5.5, { align: 'right' });
+
+    y += headerHeight;
+
+    // Itens
+    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+    doc.setFontSize(9);
+
+    dados.itens.forEach((item, index) => {
+      // Verificar quebra de página
+      if (y > pageHeight - 60) {
+        doc.addPage();
+        y = margin + 10;
+
+        // Redesenhar cabeçalho
+        doc.setFillColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+        doc.rect(margin, y, pageWidth - (margin * 2), headerHeight, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.text('DESCRIÇÃO', colProd, y + 5.5);
+        doc.text('QTD', colQtd, y + 5.5, { align: 'center' });
+        doc.text('UNIT.', colUnit, y + 5.5, { align: 'right' });
+        doc.text('TOTAL', colTotal, y + 5.5, { align: 'right' });
+        y += headerHeight;
+      }
+
+      // Zebra striping
+      if (index % 2 === 0) {
+        doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+        doc.rect(margin, y, pageWidth - (margin * 2), 8, 'F');
+      }
+
+      doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+
+      doc.setFont('helvetica', 'normal');
+      doc.text(item.descricao.substring(0, 50) + (item.descricao.length > 50 ? '...' : ''), colProd, y + 5.5);
+
+      doc.text(item.quantidade.toString(), colQtd, y + 5.5, { align: 'center' });
+      doc.text(item.valor_unitario.toFixed(2), colUnit, y + 5.5, { align: 'right' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.text(item.valor_total.toFixed(2), colTotal, y + 5.5, { align: 'right' });
+
+      y += 8;
+    });
+
+    // Linha final da tabela
+    doc.setDrawColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, pageWidth - margin, y);
+
+    y += 5;
+
+    // --- Totais ---
+    const totalsWidth = 70;
+    const totalsX = pageWidth - margin - totalsWidth;
+
+    // Subtotal
+    if (dados.desconto > 0) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text('Subtotal:', totalsX, y + 5);
+      doc.text(`R$ ${dados.subtotal.toFixed(2)}`, pageWidth - margin - 5, y + 5, { align: 'right' });
+      y += 6;
+
+      doc.setTextColor(200, 50, 50); // Red
+      doc.text('Desconto:', totalsX, y + 5);
+      doc.text(`- R$ ${dados.desconto.toFixed(2)}`, pageWidth - margin - 5, y + 5, { align: 'right' });
+      y += 8;
+    }
+
+    // Caixa TOTAL
+    doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.roundedRect(totalsX - 5, y, totalsWidth + 5, 12, 1, 1, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOTAL A PAGAR', totalsX, y + 7.5);
+    doc.setFontSize(14);
+    doc.text(`R$ ${dados.total.toFixed(2)}`, pageWidth - margin - 5, y + 8, { align: 'right' });
 
     y += 20;
 
+    // --- Informações de Pagamento e Parcelas (Lado a Lado se possível) ---
+    doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+
+    // Forma de Pagamento
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('FORMA DE PAGAMENTO:', margin, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text(dados.formaPagamento.toUpperCase().replace('_', ' '), margin + 50, y);
+
+    y += 10;
+
+    // Se houver parcelas, criar mini-tabela
     if (dados.parcelas && dados.parcelas.length > 1) {
-      doc.setFontSize(11);
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(45, 55, 72);
-      doc.text('PARCELAS', margin, y);
-      y += 8;
+      doc.text('PARCELAMENTO', margin, y);
+      y += 5;
 
-      const parcelaHeader = y;
-      doc.setFillColor(249, 250, 251);
-      doc.rect(margin, parcelaHeader - 4, pageWidth - 2 * margin, 8, 'F');
+      // Header Parcelas
+      doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+      doc.rect(margin, y, 100, 6, 'F');
+      doc.setFontSize(8);
+      doc.text('#', margin + 2, y + 4);
+      doc.text('VENCIMENTO', margin + 15, y + 4);
+      doc.text('VALOR', margin + 50, y + 4);
+      doc.text('STATUS', margin + 80, y + 4);
 
-      doc.setFontSize(9);
-      doc.setTextColor(113, 128, 150);
-      doc.setFont('helvetica', 'bold');
-      doc.text('PARCELA', margin + 5, parcelaHeader);
-      doc.text('VALOR', pageWidth / 2, parcelaHeader, { align: 'center' });
-      doc.text('VENCIMENTO', pageWidth - margin - 40, parcelaHeader);
-      doc.text('STATUS', pageWidth - margin - 5, parcelaHeader, { align: 'right' });
+      y += 6;
 
-      y += 8;
-
-      dados.parcelas.forEach((parcela, index) => {
+      dados.parcelas.forEach((p) => {
         if (y > pageHeight - 30) {
           doc.addPage();
           y = margin;
         }
-
-        if (index % 2 === 0) {
-          doc.setFillColor(255, 255, 255);
-          doc.rect(margin, y - 4, pageWidth - 2 * margin, 8, 'F');
-        }
-
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.setTextColor(45, 55, 72);
+        doc.text(`${p.numero}`, margin + 2, y + 4);
+        doc.text(new Date(p.vencimento).toLocaleDateString('pt-BR'), margin + 15, y + 4);
+        doc.text(`R$ ${p.valor.toFixed(2)}`, margin + 50, y + 4);
 
-        doc.text(`${parcela.numero}ª`, margin + 5, y);
-        doc.text(`R$ ${parcela.valor.toFixed(2)}`, pageWidth / 2, y, { align: 'center' });
-        doc.text(new Date(parcela.vencimento).toLocaleDateString('pt-BR'), pageWidth - margin - 40, y);
+        const status = p.status || 'pendente';
+        if (status === 'pago') doc.setTextColor(0, 150, 0);
+        else if (status === 'atrasado') doc.setTextColor(200, 0, 0);
 
-        const status = parcela.status || 'pendente';
-        const statusCor = status === 'paga' ? [34, 197, 94] : status === 'atrasada' ? [239, 68, 68] : [113, 128, 150];
-        doc.setTextColor(statusCor[0], statusCor[1], statusCor[2]);
-        doc.setFont('helvetica', 'bold');
-        doc.text(status.toUpperCase(), pageWidth - margin - 5, y, { align: 'right' });
+        doc.text(status.toUpperCase(), margin + 80, y + 4);
+        doc.setTextColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]); // Reset color
 
-        y += 8;
+        doc.setDrawColor(240, 240, 240);
+        doc.line(margin, y + 6, margin + 100, y + 6);
+        y += 6;
       });
-
-      y += 5;
     }
 
-    y = pageHeight - 40;
+    // --- Footer ---
+    const footerY = pageHeight - 20;
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text('________________________________________________', pageWidth / 2, footerY - 5, { align: 'center' }); // Linha assinatura
+    doc.text('Obrigado pela preferência!', pageWidth / 2, footerY, { align: 'center' });
+    doc.text('Este documento não possui valor fiscal.', pageWidth / 2, footerY + 4, { align: 'center' });
 
-    doc.setFillColor(249, 250, 251);
-    doc.rect(0, y, pageWidth, 40, 'F');
-
-    y += 10;
-    doc.setTextColor(45, 55, 72);
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Obrigado pela sua compra!', pageWidth / 2, y, { align: 'center' });
-
-    y += 7;
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(113, 128, 150);
-    doc.text('Sua confiança é muito importante para nós.', pageWidth / 2, y, { align: 'center' });
-    doc.text('Estamos sempre à disposição para melhor atendê-la.', pageWidth / 2, y + 5, { align: 'center' });
-
-    y += 15;
-    doc.setFillColor(212, 175, 55);
-    doc.rect(pageWidth / 2 - 30, y - 2, 60, 0.5, 'F');
-
-    y += 5;
-    doc.setTextColor(212, 175, 55);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.text(`${nomeLoja} - Semijoias de Qualidade`, pageWidth / 2, y, { align: 'center' });
+    // QRCode Placeholder (Simulated)
+    // doc.rect(pageWidth - margin - 20, footerY - 10, 20, 20);
 
     return doc;
   }
@@ -324,11 +303,11 @@ export class ComprovanteService {
 
     const parcelasTexto = dados.parcelas && dados.parcelas.length > 1
       ? `\n\n╔════════════════════════════════════╗\n║          PARCELAS                  ║\n╚════════════════════════════════════╝\n\n${dados.parcelas
-          .map(p => `  ${p.numero}ª Parcela - R$ ${p.valor.toFixed(2)}\n  Vencimento: ${new Date(p.vencimento).toLocaleDateString('pt-BR')}`)
-          .join('\n\n')}`
+        .map(p => `  ${p.numero}ª Parcela - R$ ${p.valor.toFixed(2)}\n  Vencimento: ${new Date(p.vencimento).toLocaleDateString('pt-BR')}`)
+        .join('\n\n')}`
       : dados.parcelas && dados.parcelas.length === 1
-      ? '\n\n💳 PAGAMENTO À VISTA'
-      : '';
+        ? '\n\n💳 PAGAMENTO À VISTA'
+        : '';
 
     return `
 ╔════════════════════════════════════╗
@@ -348,14 +327,14 @@ export class ComprovanteService {
 
 Venda: #${dados.vendaId.slice(0, 8).toUpperCase()}
 Data: ${new Date(dados.data).toLocaleDateString('pt-BR', {
-  day: '2-digit',
-  month: 'long',
-  year: 'numeric'
-})}
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    })}
 Horário: ${new Date(dados.data).toLocaleTimeString('pt-BR', {
-  hour: '2-digit',
-  minute: '2-digit'
-})}
+      hour: '2-digit',
+      minute: '2-digit'
+    })}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 👤 CLIENTE

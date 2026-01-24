@@ -79,7 +79,6 @@ export class CatalogoService {
 
       try {
         const logoPath = '/esfera logo.png';
-        const logoImg = await CatalogoService.loadImage(logoPath);
 
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d')!;
@@ -162,7 +161,7 @@ export class CatalogoService {
       });
     };
 
-    const addHeader = (pageNum: number) => {
+    const addHeader = () => {
       doc.setFillColor(...CatalogoService.COLORS.cream);
       doc.rect(0, 0, pageWidth, 35, 'F');
 
@@ -197,7 +196,7 @@ export class CatalogoService {
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...CatalogoService.COLORS.textMedium);
       doc.text(
-        `${nomeConsultora.toUpperCase()} - Coleção 2025`,
+        `${nomeConsultora.toUpperCase()} - Coleção 2026`,
         margin,
         footerY + 6
       );
@@ -245,17 +244,12 @@ export class CatalogoService {
 
     const drawStockBadge = (doc: jsPDF, x: number, y: number, quantidade: number) => {
       let color: [number, number, number];
-      let icon: string;
-
       if (quantidade === 0) {
         color = CatalogoService.COLORS.stockRed;
-        icon = '●';
       } else if (quantidade <= 2) {
         color = CatalogoService.COLORS.stockOrange;
-        icon = '●';
       } else {
         color = CatalogoService.COLORS.stockGreen;
-        icon = '●';
       }
 
       doc.setFillColor(...color);
@@ -374,7 +368,7 @@ export class CatalogoService {
       if (isFirstCategory || yPosition > pageHeight - 150) {
         doc.addPage();
         currentPage++;
-        addHeader(currentPage);
+        addHeader();
         yPosition = 45;
         isFirstCategory = false;
       }
@@ -394,7 +388,7 @@ export class CatalogoService {
           addFooter(currentPage, totalPages);
           doc.addPage();
           currentPage++;
-          addHeader(currentPage);
+          addHeader();
           rowY = 45;
           yPosition = 45;
         }
@@ -508,25 +502,7 @@ export class CatalogoService {
     });
   }
 
-  private static async loadImage(path: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0);
-          resolve(canvas.toDataURL('image/png'));
-        } else {
-          reject(new Error('Canvas context not available'));
-        }
-      };
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = path;
-    });
-  }
+
 
   static async gerarRelatorioVendasPDF(
     vendas: Venda[],
@@ -565,15 +541,13 @@ export class CatalogoService {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
 
-    const periodoTexto = `Período: ${
-      dataInicio
-        ? new Date(dataInicio).toLocaleDateString('pt-BR')
-        : 'Início'
-    } até ${
-      dataFim
+    const periodoTexto = `Período: ${dataInicio
+      ? new Date(dataInicio).toLocaleDateString('pt-BR')
+      : 'Início'
+      } até ${dataFim
         ? new Date(dataFim).toLocaleDateString('pt-BR')
         : 'Hoje'
-    }`;
+      }`;
 
     doc.text(periodoTexto, 20, yPosition + 10);
     doc.text(`Total de Vendas: ${vendas.length}`, 20, yPosition + 17);

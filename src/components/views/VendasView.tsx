@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase, Venda, Cliente } from '../../lib/supabase';
 import {
   Plus, Search, Eye, Edit2, Filter, Calendar, DollarSign,
-  CheckCircle, Clock, XCircle, AlertTriangle, CreditCard, Wallet,
-  TrendingDown, RefreshCw, Download, Ticket
+  CheckCircle, Clock, XCircle, AlertTriangle, Wallet,
+  TrendingDown, RefreshCw, Ticket
 } from 'lucide-react';
 import NovaVendaModal from '../modals/NovaVendaModal';
 import DetalhesVendaModal from '../modals/DetalhesVendaModal';
@@ -12,7 +12,7 @@ import TableSkeleton from '../ui/TableSkeleton';
 
 interface VendaComCliente extends Venda {
   cliente: Cliente;
-  cliente_nome?: string;
+  cliente_nome: string;
   total_parcelas?: number;
   parcelas_pagas?: number;
   parcelas_pendentes?: number;
@@ -22,6 +22,9 @@ interface VendaComCliente extends Venda {
   voucher_id?: string;
   valor_voucher_utilizado?: number;
   tipo_venda?: string;
+  status_venda?: string;
+  desconto_valor?: number;
+  numero_parcelas?: number;
 }
 
 type FilterStatus = 'todos' | 'pago' | 'pendente' | 'parcial' | 'atrasado';
@@ -223,11 +226,10 @@ export default function VendasView() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors border ${
-                showFilters
-                  ? 'bg-silk border-gold-ak text-gold-ak'
-                  : 'bg-white border-line text-charcoal hover:bg-gray-50'
-              }`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors border ${showFilters
+                ? 'bg-silk border-gold-ak text-gold-ak'
+                : 'bg-white border-line text-charcoal hover:bg-gray-50'
+                }`}
             >
               <Filter className="w-5 h-5" />
               <span className="hidden sm:inline">Filtros</span>
@@ -279,9 +281,8 @@ export default function VendasView() {
             </div>
           </div>
 
-          <div className={`bg-white rounded-xl shadow-sm border p-4 ${
-            vendasAtrasadas > 0 ? 'border-red-500 ring-2 ring-red-500' : 'border-line'
-          }`}>
+          <div className={`bg-white rounded-xl shadow-sm border p-4 ${vendasAtrasadas > 0 ? 'border-red-500 ring-2 ring-red-500' : 'border-line'
+            }`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Atrasadas</p>
