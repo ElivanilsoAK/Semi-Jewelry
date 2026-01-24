@@ -70,6 +70,6 @@ Gostou do sistema? Você pode apoiar o desenvolvimento contínuo através de uma
 
 **Pix (Chave Aleatória)**:
 `14c31a69-d965-4b80-8e20-d56c0dc45483`
-**Futuramente será hospedado**
+**Futuramente será hospedado em**: `https://sphere.vercel.app/`
 ---
 © 2026 SPHERE Systems. Todos os direitos reservados.
