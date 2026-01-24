@@ -425,7 +425,7 @@ export class ComprovanteVisualService {
             text-transform: uppercase;
             letter-spacing: 2px;
             margin-bottom: 8px;
-          ">✨ by Magold Ana Kelly ✨</div>
+          ">✨ by Magold EAK ✨</div>
           <div style="
             color: ${this.COLORS.mediumGray};
             font-size: 12px;

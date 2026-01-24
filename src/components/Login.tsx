@@ -60,7 +60,7 @@ export default function Login() {
           <h1 className="text-4xl font-bold text-center text-charcoal mb-2">
             SPHERE
           </h1>
-          <p className="text-sm text-gray-medium font-medium">by Magold Ana Kelly</p>
+          <p className="text-sm text-gray-medium font-medium">by Magold EAK</p>
         </div>
 
         {isForgotPassword ? (

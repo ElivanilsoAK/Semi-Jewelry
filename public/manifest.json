@@ -1,13 +1,17 @@
 {
-  "name": "SPHERE - Sistema de Gestão | Magold by Ana Kelly",
+  "name": "SPHERE - Sistema de Gestão | Magold by EAK",
   "short_name": "SPHERE",
-  "description": "SPHERE by Magold Ana Kelly - Sistema completo de gestão de vendas de semi-joias com OCR automático, controle de estoque, vendas e comissões",
+  "description": "SPHERE by Magold EAK - Sistema completo de gestão de vendas de semi-joias com OCR automático, controle de estoque, vendas e comissões",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F5F7FA",
   "theme_color": "#CBA052",
   "orientation": "portrait-primary",
-  "categories": ["business", "finance", "productivity"],
+  "categories": [
+    "business",
+    "finance",
+    "productivity"
+  ],
   "lang": "pt-BR",
   "dir": "ltr",
   "scope": "/",

@@ -54,7 +54,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-charcoal">SPHERE</h1>
-                <p className="text-xs text-gray-medium hidden sm:block">by Magold Ana Kelly</p>
+                <p className="text-xs text-gray-medium hidden sm:block">by Magold EAK</p>
               </div>
             </div>
 
@@ -90,11 +90,10 @@ export default function Dashboard() {
                 <button
                   key={item.id}
                   onClick={() => setCurrentView(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                    isActive
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive
                       ? 'bg-silk text-gold-ak font-semibold shadow-sm border-l-4 border-gold-ak'
                       : 'text-charcoal hover:bg-ice'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="text-sm">{item.label}</span>
@@ -114,11 +113,10 @@ export default function Dashboard() {
                 <button
                   key={item.id}
                   onClick={() => setCurrentView(item.id)}
-                  className={`flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-lg transition-all flex-shrink-0 min-w-[80px] ${
-                    isActive
+                  className={`flex flex-col items-center justify-center gap-1 px-4 py-2 rounded-lg transition-all flex-shrink-0 min-w-[80px] ${isActive
                       ? 'bg-gradient-to-br from-gold-ak to-amber-warning text-white shadow-md scale-105'
                       : 'text-gray-600 hover:bg-ice'
-                  }`}
+                    }`}
                 >
                   <Icon className={`w-5 h-5 ${isActive ? 'animate-pulse' : ''}`} />
                   <span className="text-[10px] font-medium text-center leading-tight">{item.label}</span>

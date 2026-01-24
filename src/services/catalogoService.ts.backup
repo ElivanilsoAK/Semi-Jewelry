@@ -114,7 +114,7 @@ export class CatalogoService {
         doc.setFontSize(8);
         doc.setFont('helvetica', 'italic');
         doc.setTextColor(...CatalogoService.COLORS.primary);
-        doc.text('by Magold Ana Kelly', pageWidth / 2, 66, { align: 'center' });
+        doc.text('by Magold EAK', pageWidth / 2, 66, { align: 'center' });
       } else {
         doc.setTextColor(...CatalogoService.COLORS.dark);
         doc.setFontSize(18);
@@ -124,7 +124,7 @@ export class CatalogoService {
         doc.setFontSize(8);
         doc.setFont('helvetica', 'italic');
         doc.setTextColor(...CatalogoService.COLORS.primary);
-        doc.text('by Magold Ana Kelly', pageWidth / 2, 31, { align: 'center' });
+        doc.text('by Magold EAK', pageWidth / 2, 31, { align: 'center' });
       }
     };
 
@@ -524,7 +524,7 @@ export class CatalogoService {
 
     doc.setFontSize(8);
     doc.setFont('helvetica', 'italic');
-    doc.text('by Magold Ana Kelly', pageWidth / 2, 38, { align: 'center' });
+    doc.text('by Magold EAK', pageWidth / 2, 38, { align: 'center' });
 
     let yPosition = 60;
     doc.setFillColor(...CatalogoService.COLORS.lightGray);
