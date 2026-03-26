@@ -351,7 +351,7 @@ export class CatalogoService {
     const totalProductPages = Math.ceil(
       categorias.reduce((total, cat) => {
         const produtosCategoria = itens.filter(item => item.categoria === cat);
-        return total + Math.ceil(produtosCategoria.length / 4);
+        return total + Math.ceil(produtosCategoria.length / 3);
       }, 0)
     );
     const totalPages = 1 + totalProductPages;
@@ -376,10 +376,10 @@ export class CatalogoService {
       drawCategoryHeader(categoria, yPosition);
       yPosition += 28;
 
-      const cols = 2;
-      const cardSpacing = 12;
-      const cardWidth = (contentWidth - cardSpacing) / cols;
-      const cardHeight = 110;
+      const cols = 3;
+      const cardSpacing = 8;
+      const cardWidth = (contentWidth - cardSpacing * (cols - 1)) / cols;
+      const cardHeight = 95;
       let col = 0;
       let rowY = yPosition;
 
@@ -461,36 +461,71 @@ export class CatalogoService {
 
       img.onload = () => {
         try {
-          const imgRatio = img.width / img.height;
-          const boxRatio = maxWidth / maxHeight;
+          // Renderiza em canvas com fundo branco e ajuste proporcional
+          const canvas = document.createElement('canvas');
+          const RENDER_SIZE = 900;
+          canvas.width = RENDER_SIZE;
+          canvas.height = RENDER_SIZE;
+          const ctx = canvas.getContext('2d')!;
 
-          let finalWidth = maxWidth;
-          let finalHeight = maxHeight;
+          // Fundo branco
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, RENDER_SIZE, RENDER_SIZE);
+
+          // Ajuste proporcional centralizado (letter-box)
+          const ratio = img.width / img.height;
+          let dw = RENDER_SIZE;
+          let dh = RENDER_SIZE;
+          let dx = 0;
+          let dy = 0;
+
+          if (ratio > 1) {
+            dh = RENDER_SIZE / ratio;
+            dy = (RENDER_SIZE - dh) / 2;
+          } else if (ratio < 1) {
+            dw = RENDER_SIZE * ratio;
+            dx = (RENDER_SIZE - dw) / 2;
+          }
+
+          ctx.drawImage(img, dx, dy, dw, dh);
+
+          // Normalização de brilho/contraste
+          const imageData = ctx.getImageData(0, 0, RENDER_SIZE, RENDER_SIZE);
+          const data = imageData.data;
+          let minL = 255, maxL = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            const lum = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+            if (lum < minL) minL = lum;
+            if (lum > maxL) maxL = lum;
+          }
+          const range = maxL - minL || 1;
+          for (let i = 0; i < data.length; i += 4) {
+            for (let c = 0; c < 3; c++) {
+              let v = ((data[i + c] - minL) / range) * 255;
+              v = (v - 128) * 1.12 + 128 + 6;
+              data[i + c] = Math.min(255, Math.max(0, v));
+            }
+          }
+          ctx.putImageData(imageData, 0, 0);
+
+          const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+          // Usa toda a área do card mantendo proporção
+          const boxRatio = maxWidth / maxHeight;
+          let finalW = maxWidth;
+          let finalH = maxHeight;
           let finalX = x;
           let finalY = y;
 
-          if (imgRatio > boxRatio) {
-            finalHeight = maxWidth / imgRatio;
-            finalY = y + (maxHeight - finalHeight) / 2;
+          if (ratio > boxRatio) {
+            finalH = maxWidth / ratio;
+            finalY = y + (maxHeight - finalH) / 2;
           } else {
-            finalWidth = maxHeight * imgRatio;
-            finalX = x + (maxWidth - finalWidth) / 2;
+            finalW = maxHeight * ratio;
+            finalX = x + (maxWidth - finalW) / 2;
           }
 
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-
-          if (!ctx) {
-            reject(new Error('Canvas context not available'));
-            return;
-          }
-
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-
-          const imgData = canvas.toDataURL('image/jpeg', 0.90);
-          doc.addImage(imgData, 'JPEG', finalX, finalY, finalWidth, finalHeight, undefined, 'FAST');
+          doc.addImage(imgData, 'JPEG', finalX, finalY, finalW, finalH, undefined, 'FAST');
           resolve();
         } catch (error) {
           reject(error);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase, Pano, ItemPano, withUserId } from '../../lib/supabase';
 import { X, Package, ChevronDown, ChevronUp, Plus, Trash2, Edit2, Image as ImageIcon } from 'lucide-react';
-import ImageUpload from '../ImageUpload';
+import SmartImageCapture from '../SmartImageCapture';
 
 interface ItensModalProps {
   pano: Pano;
@@ -273,10 +273,11 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
 
           {showForm && (
             <form onSubmit={handleSubmit} className="bg-gray-50 p-4 rounded-lg space-y-4 mb-4">
-              <ImageUpload
+              <SmartImageCapture
                 currentImageUrl={formData.foto_url}
                 onImageUploaded={(url) => setFormData({ ...formData, foto_url: url })}
                 onImageRemoved={() => setFormData({ ...formData, foto_url: null })}
+                itemName={formData.descricao || 'item'}
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
