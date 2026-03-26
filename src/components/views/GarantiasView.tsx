@@ -50,9 +50,13 @@ export default function GarantiasView() {
   const [diferencaValor, setDiferencaValor] = useState(0);
   const [formaPagamentoDiferenca, setFormaPagamentoDiferenca] = useState<string>('');
 
+  // Configurações do sistema
+  const [prazoGarantiaMeses, setPrazoGarantiaMeses] = useState<number>(24);
+
   useEffect(() => {
     carregarGarantias();
     carregarClientes();
+    carregarConfigSistema();
     if (tipo === 'troca') {
       carregarItensDisponiveis();
     }
@@ -100,6 +104,18 @@ export default function GarantiasView() {
     });
 
     if (data) setVendas(data);
+  }
+
+  async function carregarConfigSistema() {
+    const { data } = await supabase
+      .from('configuracoes_sistema')
+      .select('prazo_garantia_meses')
+      .eq('user_id', user?.id)
+      .maybeSingle();
+
+    if (data?.prazo_garantia_meses) {
+      setPrazoGarantiaMeses(data.prazo_garantia_meses);
+    }
   }
 
   async function carregarItensDaVenda() {
@@ -305,7 +321,12 @@ export default function GarantiasView() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-charcoal">Garantias</h1>
-            <p className="text-sm text-gray-600">Gestão de trocas e devoluções (2 anos)</p>
+            <p className="text-sm text-gray-600">
+              Gestão de trocas e devoluções
+              {' '}({prazoGarantiaMeses >= 12
+                ? `${Math.round(prazoGarantiaMeses / 12)} ${Math.round(prazoGarantiaMeses / 12) === 1 ? 'ano' : 'anos'}`
+                : `${prazoGarantiaMeses} meses`})
+            </p>
           </div>
         </div>
         <button
@@ -493,7 +514,12 @@ export default function GarantiasView() {
               {/* Passo 2: Venda */}
               {clienteSelecionado && (
                 <div>
-                  <label className="block text-sm font-bold text-charcoal mb-2">2️⃣ Venda (últimos 2 anos) *</label>
+                  <label className="block text-sm font-bold text-charcoal mb-2">
+                    2️⃣ Venda (nos últimos{' '}
+                    {prazoGarantiaMeses >= 12
+                      ? `${Math.round(prazoGarantiaMeses / 12)} ${Math.round(prazoGarantiaMeses / 12) === 1 ? 'ano' : 'anos'}`
+                      : `${prazoGarantiaMeses} meses`}) *
+                  </label>
                   <select
                     value={vendaSelecionada}
                     onChange={(e) => {

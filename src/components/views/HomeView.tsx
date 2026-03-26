@@ -171,11 +171,10 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
         previousPagamentos,
         clientes,
         panos,
-        panosData,
         allClientes,
         allVendas,
         allPagamentos,
-        pagamentosAtrasados,
+        pagamentosAtrasadosRes,
         itensVendidos,
         configSistema
       ] = await Promise.all([
@@ -185,25 +184,33 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
         supabase.from('pagamentos').select('*').eq('status', 'pendente'),
         supabase.from('clientes').select('id', { count: 'exact', head: true }),
         supabase.from('panos').select('id', { count: 'exact', head: true }).eq('status', 'ativo'),
-        supabase.from('panos').select('percentual_comissao').eq('status', 'ativo').maybeSingle(),
         supabase.from('clientes').select('*'),
         supabase.from('vendas').select('*'),
         supabase.from('pagamentos').select('*'),
-        supabase.from('pagamentos').select('*').eq('status', 'pendente').lt('data_vencimento', new Date().toISOString()),
+        supabase
+          .from('pagamentos')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'pendente')
+          .lt('data_vencimento', new Date().toISOString()),
         itensVendidosQuery,
         supabase.from('configuracoes_sistema').select('*').maybeSingle()
       ]);
+
+      // ── Percentuais vindos das configurações do sistema ──────────────────────
+      const percentualComissao: number =
+        configSistema.data?.percentual_comissao ?? 10;
+      const percentualPrestacao: number =
+        configSistema.data?.percentual_prestacao_contas ?? 60;
 
       const currentValorTotal = currentVendas.data?.reduce((sum, v) => sum + Number(v.valor_total), 0) || 0;
       const previousValorTotal = previousVendas.data?.reduce((sum, v) => sum + Number(v.valor_total), 0) || 0;
 
       const vendasPagas = currentVendas.data?.filter(v => v.status_pagamento === 'pago') || [];
       const valorVendasPagas = vendasPagas.reduce((sum, v) => sum + Number(v.valor_total), 0);
-      const percentualComissao = panosData.data?.percentual_comissao || 10;
-      const comissaoTotal = (valorVendasPagas * Number(percentualComissao)) / 100;
+      const comissaoTotal = (valorVendasPagas * percentualComissao) / 100;
 
-      const currentPrestacaoContas = currentValorTotal * 0.60;
-      const previousPrestacaoContas = previousValorTotal * 0.60;
+      const currentPrestacaoContas = (currentValorTotal * percentualPrestacao) / 100;
+      const previousPrestacaoContas = (previousValorTotal * percentualPrestacao) / 100;
 
       const produtosMap = new Map<string, number>();
       itensVendidos.data?.forEach((item: any) => {
@@ -237,7 +244,7 @@ export default function HomeView({ onNavigate }: HomeViewProps) {
           valorVendasMes: currentValorTotal,
           pagamentosPendentes: currentPagamentos.data?.length || 0,
           comissaoTotal,
-          pagamentosAtrasados: pagamentosAtrasados.count || 0,
+          pagamentosAtrasados: pagamentosAtrasadosRes.count || 0,
           prestacaoContas: currentPrestacaoContas,
           produtosMaisVendidos,
         },
