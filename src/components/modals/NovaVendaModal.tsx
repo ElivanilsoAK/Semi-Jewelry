@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase, Cliente, Pano, ItemPano, withUserId } from '../../lib/supabase';
 import { X, Plus, Trash2, UserPlus, ShoppingCart, CreditCard, AlertCircle, CheckCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface NovaVendaModalProps {
   onClose: () => void;
@@ -79,7 +80,7 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
 
   const handleCriarCliente = async () => {
     if (!novoCliente.nome) {
-      alert('Nome do cliente é obrigatório');
+      toast.error('Nome do cliente é obrigatório');
       return;
     }
 
@@ -91,7 +92,7 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
       .single();
 
     if (error) {
-      alert('Erro ao criar cliente');
+      toast.error('Erro ao criar cliente');
       return;
     }
 
@@ -103,13 +104,13 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
 
   const handleAdicionarItem = (item: ItemPano, quantidade: number) => {
     if (quantidade <= 0 || quantidade > item.quantidade_disponivel) {
-      alert('Quantidade inválida');
+      toast.error('Quantidade inválida');
       return;
     }
 
     const itemExistente = itensVenda.find(i => i.item_pano_id === item.id);
     if (itemExistente) {
-      alert('Item já adicionado');
+      toast.error('Item já adicionado');
       return;
     }
 
@@ -148,12 +149,12 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
 
   const handleFinalizarVenda = async () => {
     if (!clienteSelecionado || itensVenda.length === 0) {
-      alert('Selecione um cliente e adicione itens');
+      toast.error('Selecione um cliente e adicione itens');
       return;
     }
 
     if (numeroParcelas >= 1 && datasParcelas.some(d => !d)) {
-      alert('Preencha todas as datas de vencimento');
+      toast.error('Preencha todas as datas de vencimento');
       return;
     }
 
@@ -247,18 +248,18 @@ export default function NovaVendaModal({ onClose }: NovaVendaModalProps) {
 
       if (pagamentosError) throw pagamentosError;
 
-      alert(`✅ Venda registrada com sucesso!\n\nTotal: R$ ${valorTotal.toFixed(2)}\nParcelas: ${numeroParcelas}x de R$ ${valorParcela.toFixed(2)}`);
+      toast.success(`Venda registrada com sucesso!\n\nTotal: R$ ${valorTotal.toFixed(2)}\nParcelas: ${numeroParcelas}x de R$ ${valorParcela.toFixed(2)}`);
       onClose();
     } catch (error) {
       console.error('Erro ao registrar venda:', error);
       const errorMessage = (error as Error).message;
 
       if (errorMessage.includes('not authenticated')) {
-        alert('❌ Sessão expirada!\n\nPor favor, faça login novamente para continuar.\n\nVocê será redirecionado para a página de login.');
+        toast.error('Sessão expirada!\n\nPor favor, faça login novamente para continuar.');
         await supabase.auth.signOut();
         window.location.reload();
       } else {
-        alert('❌ Erro ao registrar venda:\n\n' + errorMessage + '\n\nTente novamente ou contate o suporte.');
+        toast.error('Erro ao registrar venda:\n\n' + errorMessage);
       }
     } finally {
       setSaving(false);

@@ -3,6 +3,7 @@ import { supabase, Pano, withUserId } from '../../lib/supabase';
 import { X, Upload, Loader2 } from 'lucide-react';
 import { processInventoryImage, ExtractedItem } from '../../services/ocrService';
 import OCRPreviewModal from './OCRPreviewModal';
+import toast from 'react-hot-toast';
 
 interface PanoModalProps {
   pano: Pano | null;
@@ -51,13 +52,13 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
 
       // Validação de tamanho (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
-        alert('❌ O arquivo é muito grande! Tamanho máximo: 10MB. Tente uma foto com resolução menor.');
+        toast.error('O arquivo é muito grande! Tamanho máximo: 10MB. Tente uma foto com resolução menor.');
         return;
       }
 
       // Validação de tipo
       if (!['image/jpeg', 'image/png', 'image/webp', 'image/heic'].includes(file.type)) {
-        alert('❌ Formato de arquivo não suportado. Use JPG, PNG ou WebP.');
+        toast.error('Formato de arquivo não suportado. Use JPG, PNG ou WebP.');
         return;
       }
 
@@ -98,7 +99,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
       return data.publicUrl;
     } catch (error) {
       console.error('Erro ao fazer upload:', error);
-      alert(`Erro ao enviar foto: ${(error as Error).message}`);
+      toast.error(`Erro ao enviar foto: ${(error as Error).message}`);
       return null;
     }
   };
@@ -141,7 +142,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
         if (error) throw error;
         newPanoId = pano.id;
 
-        alert('Pano atualizado com sucesso!');
+        toast.success('Pano atualizado com sucesso!');
       } else {
         // Criar novo pano
         const dataWithUserId = await withUserId(panoData);
@@ -172,19 +173,19 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
             return; // Não fechar, vai para preview do OCR
           } else {
             console.warn('⚠️ OCR não retornou itens:', ocrResult.error);
-            alert('⚠️ OCR - Nenhum item detectado\n\n' + (ocrResult.error || 'Não foi possível extrair itens da imagem. Verifique se a foto está nítida e contém uma tabela visível.'));
+            toast.error('OCR - Nenhum item detectado\n\n' + (ocrResult.error || 'Não foi possível extrair itens. A foto está nítida?'));
           }
         } catch (ocrError) {
           console.error('❌ Erro no OCR:', ocrError);
           setProcessingOCR(false);
-          alert('❌ Erro ao processar OCR\n\n' + (ocrError instanceof Error ? ocrError.message : 'Erro desconhecido'));
+          toast.error('Erro ao processar OCR');
         }
       }
 
       onClose();
     } catch (error) {
       console.error('Erro ao salvar pano:', error);
-      alert('Erro ao salvar pano: ' + (error as Error).message);
+      toast.error('Erro ao salvar pano: ' + (error as Error).message);
       setProcessingOCR(false);
     } finally {
       setUploading(false);
@@ -219,11 +220,11 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
         throw error;
       }
 
-      alert(`${confirmedItems.length} itens adicionados ao pano com sucesso!`);
+      toast.success(`${confirmedItems.length} itens adicionados ao pano com sucesso!`);
       onClose();
     } catch (error) {
       console.error('Erro ao salvar itens:', error);
-      alert('Erro ao salvar itens: ' + (error as Error).message);
+      toast.error('Erro ao salvar itens: ' + (error as Error).message);
     }
   };
 

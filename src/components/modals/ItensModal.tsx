@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase, Pano, ItemPano, withUserId } from '../../lib/supabase';
 import { X, Package, ChevronDown, ChevronUp, Plus, Trash2, Edit2, Image as ImageIcon } from 'lucide-react';
 import SmartImageCapture from '../SmartImageCapture';
+import toast from 'react-hot-toast';
 
 interface ItensModalProps {
   pano: Pano;
@@ -82,17 +83,17 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
 
     // Validações
     if (!formData.descricao.trim()) {
-      alert('Descrição é obrigatória');
+      toast.error('Descrição é obrigatória');
       return;
     }
 
     if (formData.valor_unitario <= 0) {
-      alert('Valor unitário deve ser maior que zero');
+      toast.error('Valor unitário deve ser maior que zero');
       return;
     }
 
     if (!editingItem && formData.quantidade_inicial <= 0) {
-      alert('Quantidade deve ser maior que zero');
+      toast.error('Quantidade deve ser maior que zero');
       return;
     }
 
@@ -113,7 +114,7 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
           throw error;
         }
 
-        alert('✅ Item atualizado com sucesso!');
+        toast.success('Item atualizado com sucesso!');
       } else {
         const dataWithUserId = await withUserId({
           pano_id: pano.id,
@@ -143,32 +144,38 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
         }
 
         console.log('Item inserido com sucesso:', data);
-        alert('✅ Item adicionado com sucesso!');
+        toast.success('Item adicionado com sucesso!');
       }
 
       resetForm();
       await loadItens();
     } catch (error: any) {
       console.error('Erro ao salvar item:', error);
-      alert(`❌ Erro ao salvar item:\n\n${error.message || 'Erro desconhecido'}\n\nVerifique o console para mais detalhes.`);
+      toast.error(`Erro ao salvar item: ${error.message || 'Erro desconhecido'}`);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja realmente excluir este item?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('itens_pano')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      loadItens();
-    } catch (error) {
-      console.error('Erro ao excluir item:', error);
-      alert('Erro ao excluir item');
-    }
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <p className="font-bold">Deseja realmente excluir este item?</p>
+        <div className="flex gap-2">
+          <button className="bg-red-500 text-white px-3 py-1 rounded text-sm" onClick={async () => {
+             toast.dismiss(t.id);
+             try {
+               const { error } = await supabase.from('itens_pano').delete().eq('id', id);
+               if (error) throw error;
+               loadItens();
+               toast.success('Excluído com sucesso');
+             } catch (error) {
+               console.error('Erro ao excluir item:', error);
+               toast.error('Erro ao excluir item');
+             }
+          }}>Sim, excluir</button>
+          <button className="bg-gray-200 text-charcoal px-3 py-1 rounded text-sm" onClick={() => toast.dismiss(t.id)}>Cancelar</button>
+        </div>
+      </div>
+    ), { duration: 5000 });
   };
 
   const handleEdit = (item: ItemPano) => {
