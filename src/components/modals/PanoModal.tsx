@@ -28,6 +28,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
   const [ocrItems, setOcrItems] = useState<ExtractedItem[]>([]);
   const [showOCRPreview, setShowOCRPreview] = useState(false);
   const [savedPanoId, setSavedPanoId] = useState<string | null>(null);
+  const [usarIA, setUsarIA] = useState(true);
 
   useEffect(() => {
     if (pano) {
@@ -156,8 +157,8 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
         newPanoId = insertedData.id;
       }
 
-      // Processar OCR se houver foto nova
-      if (photoFile && newPanoId && !pano) {
+      // Processar OCR se houver foto nova e botão marcado
+      if (photoFile && newPanoId && usarIA) {
         setSavedPanoId(newPanoId);
         setProcessingOCR(true);
 
@@ -421,13 +422,27 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
                 </div>
               </div>
             )}
-            <div className="mt-3 p-3 bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-lg">
-              <p className="text-sm font-semibold text-emerald-800 flex items-center gap-2">
-                🤖 Detecção Inteligente com IA
-              </p>
-              <p className="text-xs text-emerald-700 mt-1 leading-relaxed">
-                Quando você enviar a foto, o <strong>Google Gemini 2.5 Pro</strong> irá ler automaticamente a tabela coluna por coluna, respeitando as linhas verticais e evitando misturar valores de colunas diferentes
-              </p>
+            
+            <div className="mt-4 p-4 bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-xl transition-all">
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="flex items-center h-6">
+                  <input
+                    type="checkbox"
+                    checked={usarIA}
+                    onChange={(e) => setUsarIA(e.target.checked)}
+                    disabled={uploading || processingOCR}
+                    className="w-5 h-5 text-emerald-600 bg-white border-2 border-emerald-300 rounded focus:ring-emerald-500 focus:ring-2 disabled:opacity-50 transition-all cursor-pointer"
+                  />
+                </div>
+                <div className="flex-1">
+                  <p className={`text-sm font-bold flex items-center gap-2 ${usarIA ? 'text-emerald-800' : 'text-gray-500'}`}>
+                    🤖 Inclusão Automática via IA (Gemini)
+                  </p>
+                  <p className={`text-xs mt-1 leading-relaxed ${usarIA ? 'text-emerald-700' : 'text-gray-400'}`}>
+                    Se marcado, o sistema preencherá automaticamente todo o cadastro dos itens extraindo quantidades e valores direto da foto enviada.
+                  </p>
+                </div>
+              </label>
             </div>
           </div>
 

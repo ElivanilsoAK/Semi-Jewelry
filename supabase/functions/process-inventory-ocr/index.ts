@@ -196,7 +196,7 @@ Deno.serve(async (req: Request) => {
         throw new Error("Resposta não é array");
       }
 
-      console.log(`📦 ${items.length} itens parseados`);
+      console.log('📦 ' + items.length + ' itens parseados');
 
       // Validação e Normalização
       const validItems = items.filter(item => {
@@ -238,7 +238,7 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      console.log(`\n✅ SUCESSO: ${items.length} itens válidos`);
+      console.log('\n✅ SUCESSO: ' + items.length + ' itens válidos');
       console.log("📊 Amostra:", items.slice(0, 5));
 
       // Resumo por categoria
