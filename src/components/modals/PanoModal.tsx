@@ -270,7 +270,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
                   🤖 Analisando com Inteligência Artificial
                 </p>
                 <p className="text-xs text-blue-700 mt-1.5 leading-relaxed">
-                  O Google Gemini 2.5 Pro (modelo com raciocínio espacial superior) está lendo a tabela coluna por coluna, respeitando as linhas verticais. Aguarde...
+                  O Google Gemini Flash 3 (modelo otimizado para extração de dados) está lendo a tabela coluna por coluna, respeitando as linhas verticais. Aguarde...
                 </p>
                 <div className="mt-2 flex gap-1">
                   <div className="h-1 w-8 bg-blue-400 rounded animate-pulse"></div>

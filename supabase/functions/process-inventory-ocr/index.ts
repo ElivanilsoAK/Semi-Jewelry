@@ -70,7 +70,7 @@ IMPORTANTE:
 - Retorne APENAS o array JSON, sem comentários`;
 
 Deno.serve(async (req: Request) => {
-  console.log("\n=== NOVA REQUISIÇÃO OCR (Gemini 2.5 Pro - Raciocínio Espacial) ===", new Date().toISOString());
+  console.log("\n=== NOVA REQUISIÇÃO OCR (Gemini Flash - Alta Velocidade) ===", new Date().toISOString());
 
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -139,12 +139,12 @@ Deno.serve(async (req: Request) => {
 
     console.log("✅ Base64:", (base64Image.length / 1024).toFixed(2) + "KB");
 
-    console.log("🤖 Inicializando Gemini 2.5 Pro (Raciocínio Espacial Superior)...");
+    console.log("🤖 Inicializando Gemini Flash (Alta Velocidade)...");
     const genAI = new GoogleGenerativeAI(googleApiKey);
 
-    // 🚀 Usando gemini-2.5-pro - O modelo PRO com raciocínio espacial necessário para tabelas complexas
+    // 🚀 Usando gemini-1.5-flash - O modelo Flash com mais limites para resolver o erro de cota
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-pro",
+      model: "gemini-1.5-flash",
       generationConfig: {
         temperature: 0.1,
         topK: 32,
@@ -153,7 +153,7 @@ Deno.serve(async (req: Request) => {
       },
     });
 
-    console.log("🚀 Chamando Gemini 2.5 Pro com prompt estruturado...");
+    console.log("🚀 Chamando Gemini Flash com prompt estruturado...");
 
     const result = await model.generateContent([
       SYSTEM_PROMPT,
@@ -168,7 +168,7 @@ Deno.serve(async (req: Request) => {
     const response = await result.response;
     const text = response.text();
 
-    console.log("\n📥 Resposta Gemini 2.5 Pro:");
+    console.log("\n📥 Resposta Gemini Flash:");
     console.log(text);
 
     let items: ExtractedItem[];

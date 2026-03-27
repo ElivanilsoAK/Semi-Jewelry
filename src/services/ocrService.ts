@@ -16,7 +16,7 @@ export interface OCRResult {
 
 export async function processInventoryImage(imageFile: File | string): Promise<OCRResult> {
   try {
-    console.log('🚀 Iniciando processamento com Google Gemini 2.5 Pro (Raciocínio Espacial)...');
+    console.log('🚀 Iniciando processamento com Google Gemini Flash 3 (Alta Velocidade)...');
 
     // Convert to File if it's a string (URL)
     let file: File;
@@ -76,7 +76,7 @@ export async function processInventoryImage(imageFile: File | string): Promise<O
 
     const result: OCRResult = await response.json();
 
-    console.log('✅ Resposta recebida do Gemini 2.5 Pro');
+    console.log('✅ Resposta recebida do Gemini Flash');
     console.log('========================================');
     console.log('ITENS EXTRAÍDOS PELO GEMINI:');
     console.log(JSON.stringify(result.items, null, 2));
