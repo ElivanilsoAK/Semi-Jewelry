@@ -4,6 +4,7 @@ import { supabase, Pano, ItemPano, withUserId } from '../../lib/supabase';
 import { X, Package, ChevronDown, ChevronUp, Plus, Trash2, Edit2, Image as ImageIcon } from 'lucide-react';
 import SmartImageCapture from '../SmartImageCapture';
 import toast from 'react-hot-toast';
+import { processSingleItem } from '../../services/ocrService';
 
 interface ItensModalProps {
   pano: Pano;
@@ -25,6 +26,7 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<ItemPano | null>(null);
   const [categorias, setCategorias] = useState<string[]>([]);
+  const [analyzingImage, setAnalyzingImage] = useState(false);
 
   const [formData, setFormData] = useState({
     categoria: '',
@@ -283,10 +285,42 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
             <form onSubmit={handleSubmit} className="bg-gray-50 p-4 rounded-lg space-y-4 mb-4">
               <SmartImageCapture
                 currentImageUrl={formData.foto_url}
-                onImageUploaded={(url) => setFormData({ ...formData, foto_url: url })}
+                onImageUploaded={async (url, useAI = false) => {
+                  setFormData(prev => ({ ...prev, foto_url: url }));
+                  
+                  // Inicia processamento IA para preencher formulário automaticamente APENAS se solicitado
+                  if (!editingItem && useAI) {
+                    setAnalyzingImage(true);
+                    toast('🤖 IA analisando a foto para descrever o produto...', { icon: '✨' });
+                    try {
+                      const analysis = await processSingleItem(url);
+                      if (analysis.sucesso) {
+                        setFormData(prev => ({
+                          ...prev,
+                          descricao: analysis.descricao_venda || prev.descricao,
+                          categoria: analysis.categoria || prev.categoria
+                        }));
+                        toast.success('Descrição e categoria geradas com sucesso!');
+                      }
+                    } catch (error) {
+                      console.warn('Falha ao processar imagem:', error);
+                      // Não bloqueia o fluxo, apenas avisa que falhou
+                      toast.error('Não foi possível gerar a descrição automática');
+                    } finally {
+                      setAnalyzingImage(false);
+                    }
+                  }
+                }}
                 onImageRemoved={() => setFormData({ ...formData, foto_url: null })}
                 itemName={formData.descricao || 'item'}
               />
+              
+              {analyzingImage && (
+                <div className="flex items-center gap-3 p-3 bg-amber-50 border border-gold-ak rounded-lg animate-pulse">
+                  <div className="animate-spin w-5 h-5 border-2 border-gold-ak border-t-transparent rounded-full"></div>
+                  <span className="text-sm font-medium text-charcoal">Gemini AI escrevendo a melhor descrição para venda...</span>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

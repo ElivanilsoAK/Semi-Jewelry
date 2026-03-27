@@ -14,7 +14,7 @@ import { supabase } from '../lib/supabase';
 
 interface SmartImageCaptureProps {
   currentImageUrl?: string | null;
-  onImageUploaded: (url: string) => void;
+  onImageUploaded: (url: string, useAI?: boolean) => void;
   onImageRemoved: () => void;
   itemName?: string;
 }
@@ -132,6 +132,7 @@ export default function SmartImageCapture({
   const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null);
   const [savedUrl, setSavedUrl] = useState<string | null>(currentImageUrl || null);
   const [uploading, setUploading] = useState(false);
+  const [uploadingAI, setUploadingAI] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const [mirror, setMirror] = useState(true);
@@ -237,9 +238,11 @@ export default function SmartImageCapture({
   );
 
   // Confirma e faz upload
-  const confirmUpload = async () => {
+  const confirmUpload = async (useAI = false) => {
     if (!previewDataUrl) return;
-    setUploading(true);
+    if (useAI) setUploadingAI(true);
+    else setUploading(true);
+    
     try {
       const file = dataURLtoFile(
         previewDataUrl,
@@ -258,7 +261,7 @@ export default function SmartImageCapture({
         .getPublicUrl(filePath);
 
       setSavedUrl(publicUrl);
-      onImageUploaded(publicUrl);
+      onImageUploaded(publicUrl, useAI);
       setPreviewDataUrl(null);
       setMode('idle');
     } catch (err) {
@@ -266,6 +269,7 @@ export default function SmartImageCapture({
       alert('Erro ao enviar imagem. Tente novamente.');
     } finally {
       setUploading(false);
+      setUploadingAI(false);
     }
   };
 
@@ -437,28 +441,45 @@ export default function SmartImageCapture({
             ✨ Processada
           </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={confirmUpload}
-            disabled={uploading}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-60"
-          >
-            {uploading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
+        <div className="flex flex-col gap-2 mt-4">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => confirmUpload(false)}
+              disabled={uploading || uploadingAI}
+              className="flex-[0.7] flex items-center justify-center gap-2 py-2.5 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-60"
+            >
               <Check className="w-4 h-4" />
-            )}
-            {uploading ? 'Salvando...' : 'Confirmar e Salvar'}
-          </button>
+              Salvar Simples
+            </button>
+            <button
+              type="button"
+              onClick={cancelPreview}
+              disabled={uploading || uploadingAI}
+              className="flex-[0.3] flex items-center justify-center gap-1.5 border-2 border-line text-charcoal font-semibold rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-60"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Refazer
+            </button>
+          </div>
+          
           <button
             type="button"
-            onClick={cancelPreview}
-            disabled={uploading}
-            className="px-4 flex items-center gap-1.5 border-2 border-line text-charcoal font-semibold rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-60"
+            onClick={() => confirmUpload(true)}
+            disabled={uploading || uploadingAI}
+            className="w-full flex flex-col items-center justify-center gap-1 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg rounded-xl transition-all disabled:opacity-60 group relative overflow-hidden"
           >
-            <RotateCcw className="w-4 h-4" />
-            Refazer
+            <div className="flex items-center gap-2 font-bold">
+              {uploadingAI ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>✨</span>}
+              {uploadingAI ? 'Processando e Extraindo com IA...' : 'Processar com IA (Avançado)'}
+            </div>
+            {!uploadingAI && (
+              <span className="text-[10px] text-emerald-100 font-medium opacity-90">
+                Pode demorar mais (gera descrição top)
+              </span>
+            )}
+            
+            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 pointer-events-none"></div>
           </button>
         </div>
       </div>

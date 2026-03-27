@@ -141,3 +141,37 @@ export async function processInventoryImage(imageFile: File | string): Promise<O
     };
   }
 }
+
+export interface SingleItemAnalysis {
+  sucesso: boolean;
+  categoria?: string;
+  descricao_venda?: string;
+  observacoes?: string;
+  error?: string;
+}
+
+export async function processSingleItem(imageUrl: string): Promise<SingleItemAnalysis> {
+  console.log('🤖 Iniciando análise singular de produto via Gemini...');
+  
+  try {
+    const { data, error } = await supabase.functions.invoke('process-single-item', {
+      body: { image_url: imageUrl }
+    });
+
+    if (error) {
+      console.error('❌ Erro na edge function:', error);
+      throw error;
+    }
+
+    if (!data.sucesso) {
+      console.warn('⚠️ O Gemini relatou um problema:', data.error);
+      throw new Error(data.error);
+    }
+
+    console.log('✅ Análise singular concluída com sucesso:', data);
+    return data;
+  } catch (error) {
+    console.error('Erro geral ao processar o item único:', error);
+    return { sucesso: false, error: (error as Error).message };
+  }
+}

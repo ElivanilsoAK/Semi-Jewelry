@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Plus, Trash2, Save, Zap } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -137,8 +138,8 @@ export default function CadastroRapidoItensModal({ panoId, onClose, onSave }: Ca
     }
   }
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+  return createPortal(
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9990]">
       <div className="bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -273,6 +274,7 @@ export default function CadastroRapidoItensModal({ panoId, onClose, onSave }: Ca
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
