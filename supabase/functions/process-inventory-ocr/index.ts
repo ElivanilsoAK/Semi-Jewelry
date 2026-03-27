@@ -150,6 +150,7 @@ Deno.serve(async (req: Request) => {
         topK: 32,
         topP: 1,
         maxOutputTokens: 8192,
+        responseMimeType: "application/json",
       },
     });
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase, Pano, ItemPano, withUserId } from '../../lib/supabase';
 import { X, Package, ChevronDown, ChevronUp, Plus, Trash2, Edit2, Image as ImageIcon } from 'lucide-react';
 import SmartImageCapture from '../SmartImageCapture';
@@ -247,8 +248,8 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
     'bg-teal-500',
   ];
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+  return createPortal(
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9990]">
       <div className="bg-white rounded-xl max-w-5xl w-full max-h-[90vh] flex flex-col">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
@@ -494,6 +495,7 @@ export default function ItensModal({ pano, onClose }: ItensModalProps) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

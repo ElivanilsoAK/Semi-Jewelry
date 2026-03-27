@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion'; // ✅ Agora vai funcionar com a v11
 import { X, Check, Trash2, Plus } from 'lucide-react';
 import { ExtractedItem } from '../../services/ocrService';
@@ -110,9 +111,9 @@ export default function OCRPreviewModal({ items: initialItems, imageUrl, onConfi
     );
   }
 
-  return (
+  return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
         {/* Overlay Animado */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -260,6 +261,7 @@ export default function OCRPreviewModal({ items: initialItems, imageUrl, onConfi
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

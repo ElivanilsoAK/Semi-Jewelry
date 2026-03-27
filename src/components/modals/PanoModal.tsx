@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase, Pano, withUserId } from '../../lib/supabase';
 import { X, Upload, Loader2 } from 'lucide-react';
 import { processInventoryImage, ExtractedItem } from '../../services/ocrService';
@@ -245,8 +246,8 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
     );
   }
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+  return createPortal(
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9990]">
       <div className="bg-white rounded-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-gray-800">
@@ -486,6 +487,7 @@ export default function PanoModal({ pano, onClose }: PanoModalProps) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
